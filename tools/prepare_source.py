@@ -76,6 +76,10 @@ def main() -> None:
     evidence.mkdir(parents=True, exist_ok=True)
     upstream.mkdir()
     run("git", "init", "--bare", "--quiet", str(upstream))
+    # git archive applies working-tree conversion; Windows defaults can emit CRLF.
+    # Preserve pinned blob bytes so patch and complete-tree hashes remain strict.
+    run("git", "-C", str(upstream), "config", "core.autocrlf", "false")
+    run("git", "-C", str(upstream), "config", "core.eol", "lf")
     run("git", "-C", str(upstream), "-c", "credential.helper=", "fetch", "--depth=1", lock["upstream"], base)
     fetched = subprocess.check_output(["git", "-C", str(upstream), "rev-parse", "FETCH_HEAD"], text=True).strip()
     if fetched != base:
