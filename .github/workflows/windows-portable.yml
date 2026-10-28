@@ -1,0 +1,77 @@
+name: Windows portable private build and QA
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-portable-serial
+  cancel-in-progress: false
+
+jobs:
+  portable:
+    runs-on: windows-2022
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout private build recipe
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Verify private repository and runner storage
+        run: |
+          if ('${{ github.repository }}' -ne 'MedinaParra/planificador-skm') { throw 'Unexpected repository' }
+          if ('${{ github.event.repository.private }}' -ne 'true') { throw 'Private repository required' }
+          if ([IO.DriveInfo]::new([IO.Path]::GetPathRoot($PWD.Path)).AvailableFreeSpace -lt 9GB) { throw 'Insufficient runner storage' }
+          powershell.exe -NoProfile -File ci/test-script-syntax.ps1
+          if ($LASTEXITCODE -ne 0) { throw 'PowerShell parser failed' }
+          python --version
+          python -c "import tarfile; assert hasattr(tarfile, 'data_filter'), 'Python tar data filter required'"
+          if ($LASTEXITCODE -ne 0) { throw 'Python lacks safe tar filter' }
+          python tools/test_prepare_source.py
+          if ($LASTEXITCODE -ne 0) { throw 'Source preparation tests failed' }
+      - name: Reconstruct and verify exact source bytes
+        run: |
+          python tools/prepare_source.py
+          if ($LASTEXITCODE -ne 0) { throw 'Source reconstruction failed' }
+      - name: Prepare pinned Rust toolchain
+        run: |
+          rustup toolchain install 1.95.0 --profile minimal --component rustfmt
+          if ($LASTEXITCODE -ne 0) { throw 'Pinned Rust toolchain setup failed' }
+      - name: Build actual Windows app and run focused gates serially
+        run: ./tools/build-windows.ps1
+      - name: Native Windows GUI and portability smoke without control credentials
+        run: |
+          powershell.exe -NoProfile -File ci/windows-portable-smoke.ps1 -Exe build-source/target/x86_64-pc-windows-msvc/release/solidcraft.exe -EvidenceDir build-evidence/gui
+          if ($LASTEXITCODE -ne 0) { throw 'Windows GUI smoke failed' }
+      - name: Package ZIP-only after verified gates
+        run: |
+          powershell.exe -NoProfile -File ci/package-windows-portable.ps1 -Exe build-source/target/x86_64-pc-windows-msvc/release/solidcraft.exe -SourceRoot build-source -BuildReceipt build-evidence/build-receipt.json -SmokeResult build-evidence/gui/smoke-result.json -OutputDir dist
+          if ($LASTEXITCODE -ne 0) { throw 'Portable packaging failed' }
+      - name: Bound private artifacts within included storage
+        id: artifact_bound
+        if: always()
+        run: |
+          $files = @(Get-ChildItem dist -File -ErrorAction SilentlyContinue) + @(Get-ChildItem build-evidence -File -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.Extension -in '.json','.log','.png','.txt' })
+          $bytes = ($files | Measure-Object Length -Sum).Sum
+          if ($bytes -gt 250MB) { throw "Artifact cap exceeded: $bytes bytes; nothing will be uploaded" }
+      - name: Private artifact, one day retention, no release
+        if: always() && steps.artifact_bound.outcome == 'success'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: windows-portable-${{ github.run_id }}
+          retention-days: 1
+          if-no-files-found: warn
+          compression-level: 0
+          path: |
+            dist/*.zip
+            dist/*.json
+            dist/*.txt
+            build-evidence/**/*.json
+            build-evidence/**/*.log
+            build-evidence/**/*.png
+            build-evidence/**/*.txt

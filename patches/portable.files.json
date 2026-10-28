@@ -1,0 +1,74 @@
+{
+  "apps/solidcraft/Cargo.toml": {
+    "sha256": "034f69c6a83eeaa510cd2d2152371f68faf29d892f889c2160daf8b5ecdd227b"
+  },
+  "apps/solidcraft/src/control_server.rs": {
+    "sha256": "a89702b4b4c2d673b92d6876d4b1faaab07f3d7aef0e907dd4e9ff972d50d31e"
+  },
+  "apps/solidcraft/src/main.rs": {
+    "sha256": "8e2b883c5baa57f5a68ac69eed83aa3c7b51528d6ae8f398d4b8ba1d38b9bcdc"
+  },
+  "assets/locales/pending/portable-policy.json": {
+    "sha256": "55b8e4f08a1a7b39e76465ec64e3f9284dea8183a45471c4d8e63e4671fac4b7"
+  },
+  "attribution/pending/portable-policy.md": {
+    "sha256": "33d26059b1d0b2e26eeeb376d8540ded20cf746641096e2dd2d2808adb34417a"
+  },
+  "crates/engine/Cargo.toml": {
+    "sha256": "f48c62ef1802951bf8d61e9e2afbfbdade375527c8e435a9c9846bd68c4af8e1"
+  },
+  "crates/engine/src/crash.rs": {
+    "sha256": "a01df3e75a60e9db869be79d1fa19a428761b1903879976421cfd5310c90c0fe"
+  },
+  "crates/engine/src/recovery.rs": {
+    "sha256": "d92542bca8032f111628ee738c0b882356dbd0ffa9cabd65eec52a30052df05b"
+  },
+  "crates/engine/tests/lift_plan.rs": {
+    "sha256": "1ab4553436e2ceec42db70c985ec6e5ce55c430f214fd10ece976eebee136f3d"
+  },
+  "crates/geom/Cargo.toml": {
+    "sha256": "cdfb2417773d48deda51cc945957e11af5bbaaff0ca1d079012f72ab3028580d"
+  },
+  "crates/geom/src/lib.rs": {
+    "sha256": "25e5ead57a4e0c9e0c2b1efb629999a1bdb126a06cff9581a2304da18e5fab8a"
+  },
+  "crates/geom/src/portable.rs": {
+    "sha256": "2800cb0be6692dd8a7d1b3e64e3e7233257978a5b5193b9339b629432dc07b17"
+  },
+  "crates/io/src/vfs.rs": {
+    "sha256": "a752507775e43bd3b11a6a0051d9d8e4d6f3b55040b65cfa6130308fe95d4aa8"
+  },
+  "crates/ui-egui/Cargo.toml": {
+    "sha256": "a775a2e54ab4cceb6f8663bce18bc023e5c5e44d13340b323dd8f0f7ad469e82"
+  },
+  "crates/ui-egui/src/agent_chat/mod.rs": {
+    "sha256": "1f1157c02279354daf0fa8c8889a9a458a741e87a23dd2c6847c7a5a1bd34da2"
+  },
+  "crates/ui-egui/src/agent_chat/settings.rs": {
+    "sha256": "1986c45b78d2065a97d0abecfcd4fcc593b262641641035e98d1e91040365307"
+  },
+  "crates/ui-egui/src/ai_connect.rs": {
+    "sha256": "66f616599d3c86404fee76047af77268ab4d25c5e472ceb88e9b167e568f330d"
+  },
+  "crates/ui-egui/src/control.rs": {
+    "sha256": "50a194e5cc7a838eab46999213c8e8d5ec24b7add58c8bb864f77e03b558a434"
+  },
+  "crates/ui-egui/src/help.rs": {
+    "sha256": "a4354ab35f76bfe5f4d01c3cbf53772c99a5a7055a510a425eb30c51bdfa3002"
+  },
+  "crates/ui-egui/src/home.rs": {
+    "sha256": "b8b0fe270a70add881c592c3d6773f53e91d3a75a844f0b1dcf8b4cd14c1108f"
+  },
+  "crates/ui-egui/src/lib.rs": {
+    "sha256": "24445b54b63097cf2acbe71e45f024f55579ff2ae794b169da8173b938fae92a"
+  },
+  "crates/ui-egui/src/update.rs": {
+    "sha256": "6ef89c64aa84505cadc790e5079b2812294bf2255a179ec710635618ae96e66b"
+  },
+  "crates/ui-egui/tests/lift_plan_ui.rs": {
+    "sha256": "ad013e99613a8902f8a7e7c832f88feae5cc18ccf2dae978b367d695041f7e63"
+  },
+  "crates/ui-egui/tests/portable_policy.rs": {
+    "sha256": "e4e123978f4bd91b934125ffd08df5bbd197c67ea3a23f78b4ebdba29eb006fb"
+  }
+}

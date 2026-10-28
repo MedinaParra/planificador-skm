@@ -1,0 +1,10 @@
+{
+  "upstream": "https://github.com/tangency-labs/solidcraft.git",
+  "base_commit": "7770f8982de8bf00cabfe421b7f563b34c7af90f",
+  "delta_sha256": "c3d8405b5be9650e904a1b982a30d4e85b8397f74a6750849a20c5b8cfcfb513",
+  "portable_patch_sha256": "b3127f2c00f40cac48aec91bab8eeafd5cd286f0a6ea5bc270243d6160bc938f",
+  "planner_tree_sha256": "f6497758b35d8d6fd60697379f25f91ba95e6b39d11450cb70e0e2d4a1a6b57c",
+  "planner_tree_files": 3198,
+  "portable_tree_sha256": "b25dc0548a200f63e90fc2f812fc19a65adaf20a36d0820c68af93eb0679987f",
+  "portable_tree_files": 3202
+}

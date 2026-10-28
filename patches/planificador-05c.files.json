@@ -1,0 +1,566 @@
+{
+  "apps/solidcraft/src/native_menu.rs": {
+    "sha256": "7bcd7c9c1c95a305cdec534700e3ddbe721b140bd44c5264817c9e0eb83833a3",
+    "executable": false
+  },
+  "assets/locales/pending/lift-package-inspect.json": {
+    "sha256": "9082cebaba9945412b96c107eb660288a38d2c11b64d1cd1774bea2c54df432a",
+    "executable": false
+  },
+  "assets/locales/pending/lift-plan.json": {
+    "sha256": "1c5df6baca96ecc42ce26dbd5abe6b7e63fe031985056b1c36cec6418a440f9a",
+    "executable": false
+  },
+  "assets/locales/pending/lift-step-units-inspect.json": {
+    "sha256": "10b8f89b7f4eb3673ea56bfc90dc8595e2f65618e166e2e986f43b4410b3303c",
+    "executable": false
+  },
+  "attribution/pending/lift-package-inspect.md": {
+    "sha256": "e220f30e75b1d37a44ef285edd12454330d24d6346dd7af2410178a608289d93",
+    "executable": false
+  },
+  "attribution/pending/lift-plan.md": {
+    "sha256": "b98f394b5edcb9a59b70dcc67cf22bc0dcdfe1142d9a1e97cc9974987c8f8d82",
+    "executable": false
+  },
+  "attribution/pending/lift-step-units-inspect.md": {
+    "sha256": "144b257cabc1ca2e6d9f3ab7bc719ac45114d88e1efdf56f402819d7cccdf58a",
+    "executable": false
+  },
+  "crates/doc/src/format/pending/lift-study-metadata.rs": {
+    "sha256": "041fa179d37c109a7f1d2b320d7c2a89bebc43e2b2462af57096686116104ec9",
+    "executable": false
+  },
+  "crates/engine/src/cmd/lift.rs": {
+    "sha256": "863322faa32a459c7957496ec83784440cbfdca3503339af7256dbe799f32428",
+    "executable": false
+  },
+  "crates/engine/src/cmd/lift_capacity.rs": {
+    "sha256": "e55c1a0600cc4ba98cfed46004a9aadeb8b9e5a5e6945dac98ad2648c51ef670",
+    "executable": false
+  },
+  "crates/engine/src/cmd/lift_measure.rs": {
+    "sha256": "c560245423c4eee40f46b52bb90da9a1eb3b6c83fa51c3b93a71f4c7d6f66579",
+    "executable": false
+  },
+  "crates/engine/src/cmd/lift_measure_math.rs": {
+    "sha256": "18c07f26a4d0e6301c653c3fba3caa571a76b93c445d01a0cde8d493d4f0ea53",
+    "executable": false
+  },
+  "crates/engine/src/cmd/lift_package.rs": {
+    "sha256": "39022aa95939246254b7fcd3aa82e06d6875a68c0ff1f21a63e3a7120bb01f15",
+    "executable": false
+  },
+  "crates/engine/src/cmd/lift_tests.rs": {
+    "sha256": "8bdcbbc923524cc6191a6467c46fbbc7b2041c047d5e13d9da74cae3a5e101be",
+    "executable": false
+  },
+  "crates/engine/src/cmd/mod.rs": {
+    "sha256": "cd1b3c7fa44ddee32ae603edbed932aae4861a77e688d48db05404af78430f26",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_geometry/README.md": {
+    "sha256": "ed9b65155e1fb3e4f375e4bda0624c478ec0a98740ec2c8ab5ecd73364b77d24",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_geometry/cases.json": {
+    "sha256": "d0eeffcc1d327aff83f6953cb667a8a7e958d3cd346e25e9f69defffb683f619",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/README.md": {
+    "sha256": "0a071db3b8d481964244493e607a07f298a6f7fd9975f16c1fdb4b0567627a0b",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/asset_hash_tampered.zip": {
+    "sha256": "4d97ddc0cba102682856190f5a924d70c1ae40d2f66009e857f146d071c9c127",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/axis_not_unit.zip": {
+    "sha256": "b854abba435248c6a3f7e8b305d7bd9a1f5d6348c7c1e98a4cdc2c70dd899e07",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/capacity_zero.zip": {
+    "sha256": "261d51754f1c9461dab18e7320527a207148bbdce7a4228cceb4d5edcbe7bbc0",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/cases.json": {
+    "sha256": "ea12c4a1c260ae38dd26096b278bc8a65fc0a8dc3f2115517fadf3f812f03a9b",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/chart_hash_tampered.zip": {
+    "sha256": "713d5906cb07c05906abb66a163234130ac900e15c00b0334e11586e69564fad",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/crc_corrupt_content.zip": {
+    "sha256": "d56a810b906e38996e5361f5a74aa18373c83897421ec6b869c77f59532acb3c",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/decimal_exponent.zip": {
+    "sha256": "b7d395f3001e61121c9bbd1dcc086850eca30159b020db189221b1bed57f95d3",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/degenerate_frame.zip": {
+    "sha256": "00284e8f16b6ec64fe7f3da300d357d418ae9d880ce685325e9bac56bc036d58",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/depth_json.zip": {
+    "sha256": "d5b4bddec5f115e520d745db5c93d06c0f79f08cd3e4750777d9276818dd433c",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/duplicate_case.zip": {
+    "sha256": "6504b66b1b86bc10bffc4237f8f02809a3a52c1bce4915c1b03c517d463dbe84",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/duplicate_chart_key.zip": {
+    "sha256": "1607ec9851828aeb392d25cde71cb64435dbdcd04d075b95c0383a1e51be80e2",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/duplicate_config.zip": {
+    "sha256": "8c7a3244db2b95b8e7bf142b401443c92a06af0872ecb129981495777784c161",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/duplicate_exact.zip": {
+    "sha256": "98bd31ebc1f0e12d081356d1004e5297026b39cc61b383a63a839c9753f0daf8",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/duplicate_json.zip": {
+    "sha256": "6a9bbc5210639d47238db08ad33088a2e31c7e0b8d09143da7ab31500b0e2023",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/encrypted.zip": {
+    "sha256": "6bd61696e465a2fc9bf1b55daefcb7bb2d33f29d1ff3ba4f8223d2e88117cbfa",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/entry_limit.zip": {
+    "sha256": "189316008dfaffe5574739d37e9e806e66c10b8d1c30fcf2d0294300f686b5a5",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/executable.zip": {
+    "sha256": "98457ff002971d4dd3cef5c34d17e17ff0e8cc2df5ed55cfa432c6f063ab0609",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/fake_pdf.zip": {
+    "sha256": "f9cfe108ac3cead193cf0fc3e31a2e6238e1b39bc89651b69af300a88150efe8",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/fifo.zip": {
+    "sha256": "53080e078e77c8d12f7696fa3e7e58db528e71c2e54b611464b1b496b7dad39c",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/future_schema.zip": {
+    "sha256": "e7650b7f2f828da1321bac0a252e8ff8be49f56a08b651d60566709652f33854",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/hook_inverted.zip": {
+    "sha256": "7fd11ec699f5abbc82a969d2476c8c5755bbe49da25cc6c28673fab3dfabc770",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/kinematic_cycle.zip": {
+    "sha256": "5501b8af1f3fe239146be6b2a791c0c89d7d32b343f0e2c2971f3f083e3c71a9",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/local_crc_mismatch.zip": {
+    "sha256": "f20056da0a0e9e43accf926726c9eda9e82266a766a216d58f5ea6ac58fe9c45",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/local_flags_mismatch.zip": {
+    "sha256": "df92f09c88b2146e33966241857250a76ad6803d52ffd884e235bb5ba4e29b87",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/local_name_mismatch.zip": {
+    "sha256": "9ac77252abf8ceb112149a2ac898450e0634ce804fd666073162fa5816c03b9a",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/member_declared_limit.zip": {
+    "sha256": "6c8f0bd5726019c8d2bfeb35797338cc736274d59792b41dcafeaf5df12806f0",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/missing_manifest.zip": {
+    "sha256": "56411945ff8355eac12d06319b7a11484db293a336e725ab3931f312ff76b15a",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/missing_units.zip": {
+    "sha256": "fe24a2d8fad9efc18352eb92c4b74db81707cc544b7b0df9c305ceae1d2e1795",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/multidisk.zip": {
+    "sha256": "de10e9d84920295e50e14432ef3fb9f9cf820e0b192e1d1ed8a09ddda82d44b4",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/nan_json.zip": {
+    "sha256": "3f77d878d986c92ce0638598d405cc7da20a494b520d9990dfa098e5ba18dab1",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/nested_zip.zip": {
+    "sha256": "75f253e364449ccd1364ba258ad67316f1d35d85fda83b9e480da29980928b2f",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/not_zip.zip": {
+    "sha256": "def632dce02e8c703fc96a38d11fc810a5c1f78083aebdf9d13a6bd893a87a75",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/nul_filename.zip": {
+    "sha256": "7677bcbcd3e8b479808e98f5e8f9b15ce5cf3cdb347e5b332cdb2c111a01732e",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/numeric_capacity.zip": {
+    "sha256": "78544dbed2fd86957b19cd02a0c38ccb63d659f559fe0e2ee7b2d8ec0f36f247",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/oem_mismatch_claims_only.zip": {
+    "sha256": "4a0d63a02f26d6d1fc59233d3033a22c55892d7e03529cc57ff482cf8ee9661b",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/opaque_pdf_not_rendered.zip": {
+    "sha256": "a0f9efabdd40d102499515deb5a36243c793575dd646f42c18076409d39b8599",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/overlapping_members.zip": {
+    "sha256": "da31b51de2e36249561bc303e51a86666f87354df54ff2112c311b9591b68db6",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/payload_exe.zip": {
+    "sha256": "241c6cf4e5c439ef398b2b196354d366084a56827fde9e4762491ca840b3ca66",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/ratio_limit.zip": {
+    "sha256": "b186fc2313dec35bcdbce769ced3eb2012325464689f1918dd2cbd1d34fcd890",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/script_py.zip": {
+    "sha256": "2594557fc4dc59fa2131ab8eee39ad233c9e415417a68e3afab654d9f5daabc0",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/silent_new_field.zip": {
+    "sha256": "4f55150579e5ca762eecadff9748d63dcda26b4c66f4c51f6994273955d2d3e5",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/size_json.zip": {
+    "sha256": "3a0e8b131056a288adc223556b9711976ae248d5a5c5141a2e1f4d56402ee6b1",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/source_hash_tampered.zip": {
+    "sha256": "78d2fe8e1d2b2bc00030faa46cd17e73910a16b43c30b79d546d8226c0d12cab",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/source_script.zip": {
+    "sha256": "ca7132ee914cb61f294a142ab64fe163cdb16ea8950435d10b6dc22f6e57af07",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/step_bad_envelope.zip": {
+    "sha256": "55f0bf18b0b59b222efa6c1ae0ca300b8e8eb66a447542eabcb3ca1e3f9d0db7",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/step_external_65.zip": {
+    "sha256": "e63c74403ae69db648f03693a6f3da52df8c6b1269292f1a652179b547620017",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/step_external_66.zip": {
+    "sha256": "52f1414d27f60c8efbdc6b0dc7310ea7d3f3a7cdb776d326b9ada3afc4952f84",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/step_external_67.zip": {
+    "sha256": "e63c74403ae69db648f03693a6f3da52df8c6b1269292f1a652179b547620017",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/step_external_68.zip": {
+    "sha256": "52f1414d27f60c8efbdc6b0dc7310ea7d3f3a7cdb776d326b9ada3afc4952f84",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/step_external_69.zip": {
+    "sha256": "54084dbe0d9bf2d998d8710b8f5f89ed3fc858155b2bb75d048fe28a90eed324",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/step_external_70.zip": {
+    "sha256": "af923108569e94fcb84fdc21ebe6c7f698be650d17f79717ce1459e33053ebf7",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/step_external_71.zip": {
+    "sha256": "ebe1784d6815a1450e07eace44f348c3d17df0d617d1f04f7eebc15f333b9109",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/step_legacy_bytes_unparsed.zip": {
+    "sha256": "a2656917a78489d891bcf0f2f2add5d5c0f90c9ec27d3dc121a86f68329c5c6c",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/symlink.zip": {
+    "sha256": "6d67d6c9cc1d51ab80e5b5c52f8e2558c2f09d0d2ce98347ee2cb2014ec6bada",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/total_size_limit.zip": {
+    "sha256": "f5dd43562bc3d35219b991290a9c79de2281c9fd8c1c69f67a1feb01f3c3bff2",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/trailing_json.zip": {
+    "sha256": "39747a54b402e317537f181a81c2ef175735f0ac389131bbde0ddb42b55a08ed",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/truncated.zip": {
+    "sha256": "2d8f87ad1f32817b723ba75e89abf3e843768efa8ead1005c829bc7b406907cc",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/undeclared_file.zip": {
+    "sha256": "d1970130966547de4baa3b14669b023b7ff3e71420f471212595d8e108ddc3b8",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/unit_claim_inch.zip": {
+    "sha256": "ca47573951c7f24101a5d0d1f6c937775a079e9617b5701143f751b483125689",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/unit_claim_m.zip": {
+    "sha256": "6fae7f6239ccc9c85caa542ca6ad5ec7f4974d3191037828de32770793e43462",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/unit_claim_mm.zip": {
+    "sha256": "7bfe8dace8967506b1d139c940aa03b058fb2d20cfd7348ea64b6c11750a84f0",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/unknown_chart_config.zip": {
+    "sha256": "cc6fbcfd07db4bcc08fa7d023fed490bdcf10145069b0a2b848c1531718b25ad",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/unknown_parent.zip": {
+    "sha256": "ca07b69e19b19e810eeb8f1cdc78d40bc32ccd18b49afa25805875c989e83106",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/unknown_units.zip": {
+    "sha256": "af7dbadb378f400f3d15c939bac113a5aa6141f6661727ece99a03fccc7d21ba",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/unsafe_path_0.zip": {
+    "sha256": "cbc58990a64ebf297e9fed151cf26597b4f9b002f997a1ef31a3a894ab1f530f",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/unsafe_path_1.zip": {
+    "sha256": "b67e7e2e93ffc9f9ee0b3e729c73251b9f247f94c2e140be476b22a0912e0f4b",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/unsafe_path_2.zip": {
+    "sha256": "fb7e6811f872c2e3ee85cb4e26ef624079242df97e4ec99e7c3962f4540b5206",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/unsafe_path_3.zip": {
+    "sha256": "26cd359dcba5a9df8e8682ce23f89c188bff8581410aef90a5631f11fc78533d",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/unsafe_path_4.zip": {
+    "sha256": "9601cb8b4e789ec2c72f8703bf5e308e5186b8fc747a717f7f43fafc369f3848",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/unsafe_path_5.zip": {
+    "sha256": "ea9a5cb2623de644584d56a6561997f285e848cd003aff2e806e609ad1ffa188",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/unsafe_path_6.zip": {
+    "sha256": "d00e3a35b82aaad4e42e920206c082beb1bc9878d085bc88583d673dbeb606ba",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/unsafe_path_7.zip": {
+    "sha256": "64b0fe2c2d20cf4895b3878f591b9a29a2541f6611c5045eec0879b027b5b12f",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/unsupported_compression.zip": {
+    "sha256": "95d56e160930538685876a4080e0d3b695bbba144cc107c3546c225f6d0d485b",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/unsupported_glb.zip": {
+    "sha256": "44a86cc54c6e89d2adb3cf30f291ca36f2ef6f6845c26fa94204d401957eaa16",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/valid_deflated.zip": {
+    "sha256": "10dc5804fd9a1b889719dca8a0f2b799958f72fe4204ee0f5b78d3ee37f29da6",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/valid_stored.zip": {
+    "sha256": "af7981493be850fa06efefe6a013e502b5f3207cb56fc70f399fa6d58781382d",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/wrapped_sector.zip": {
+    "sha256": "1d9a6fb0d5fb05ad085848fc7d5cdb21cc1a4558a6ab9a114bbfcb95ae84f7bb",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_package/zip64_version.zip": {
+    "sha256": "938eec40608f08b28fb8bff5381e0672343ff0e343fe201f02c9572ae3b12fa0",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_step_units/README.md": {
+    "sha256": "7db0667a6b6f282d60d6f3d08a0427d603bea6e461183ea3a10130f29a79b6bc",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_step_units/bom_only.step": {
+    "sha256": "f1945cd6c19e56b3c1c78943ef5ec18116907a4ca1efc40a57d48ab1db7adfc5",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_step_units/cases.json": {
+    "sha256": "30542ee7f3c9a3b59f4fddb3de0ecf1ff8883c41ba6960f2425bdb181d39c169",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_step_units/conflicting_context.step": {
+    "sha256": "1db76e839b2235ab31df438c9a0808b652864638de9342471325cfef8b7dfeba",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_step_units/conversion_cycle.step": {
+    "sha256": "e21926c9812d77cca8efe799ed662eb971f8a506fbb55d38a22de4b0a78fccc2",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_step_units/conversion_inch.step": {
+    "sha256": "66ffeec568ab2db368ba2007703a6da389bcc36fc6ccf65d0bda5a6a03c832bd",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_step_units/conversion_overflow.step": {
+    "sha256": "5a0c83fe4baf7b3e2a92457ca33044edd18de31ed5c805ecbaaa3d035c3fcbcf",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_step_units/cross_dimension_conversion.step": {
+    "sha256": "5d7c93395e80df21ee9bf06e469d773f59ea370638b4cf26a730c2e5b7d216cd",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_step_units/double_bom.step": {
+    "sha256": "e26788850766cf4de9e79a61b459c1a4f448bb44c347f3c8f0eb6f49d0f54c74",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_step_units/duplicate_entity.step": {
+    "sha256": "36fbeb0d72cc19a72442132ecbb8fff40f8c19c640444b10d0512c2a90ace92a",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_step_units/duplicate_equal_units.step": {
+    "sha256": "fb84c78d74ce14bc2de910c5bd496225bdff54c68d93f134e3058770e49d4417",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_step_units/empty.step": {
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_step_units/fake_step.bin": {
+    "sha256": "c2ca6faad554c6d5cc522a2fb407049745a887d99ed9d20a30d6e2c2ff4a9bcc",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_step_units/fake_units_in_string.step": {
+    "sha256": "57bac31589aa832b201ff699aa56126cc1c18308374567302039e38d8d69993c",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_step_units/invalid_utf8.bin": {
+    "sha256": "caf573f0daa6960ecb26f8eddbc4e2059277ad5afc6f72ffd59a0ecead602a22",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_step_units/kind_mismatch.step": {
+    "sha256": "fb77ef21094a4ee8d9ff4e25086e3c8929a0ffba4e6a0cf978f9d4cafd86ea06",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_step_units/legacy_latin1.bin": {
+    "sha256": "c6b7242b2671c67a71333de4a4a098c40fa8b04c1e493c1d5d78e745fa3305d5",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_step_units/missing_contexts.step": {
+    "sha256": "90de2eaa79405d1b39d89b3b9838c9cc679d0238c25ada34657707a9d4963da1",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_step_units/mixed_contexts.step": {
+    "sha256": "8b7f67fdf491e9de72a93f09ed28efffacef630d3612a2d1f964865eddfb8cd2",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_step_units/nonfinite.step": {
+    "sha256": "beda55d28b93785002893e74936ed10ba7f90d4324a9e042e47ce8ec9c035a5b",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_step_units/reference_section.step": {
+    "sha256": "9005d1ff38fc1c83048bbb74444487c98a9b27185e9409edee38f7cb153d4aea",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_step_units/si_m.step": {
+    "sha256": "6d637d25c60af692ce8c03e4083c8f1be0b9e9cdaa8af94a956982b7ed23f01a",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_step_units/si_mm.step": {
+    "sha256": "0be71f30a7e3a5ed4920e819412b39ea34b276be79310883c4e9e86a93e6eba0",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_step_units/si_mm_bom.step": {
+    "sha256": "77ad3fd329d9e2ef7397341f8c88882b3650e0aae96fcd3cf8086339e3ff30df",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_step_units/si_mm_crlf.step": {
+    "sha256": "33c804394fc9074bc5426014fa8401b1daf3dcca5797a85c6144b666d0259c77",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_step_units/unsupported_prefix.step": {
+    "sha256": "ea3e900d2b084b40c60a7121ecd9ab5a0e7169d6e7921afc82e915011baa7ea4",
+    "executable": false
+  },
+  "crates/engine/tests/fixtures/lift_step_units/utf16le.bin": {
+    "sha256": "ba8864a054fbd1e12c4e3c22e99eeb3ae6b62dec0b895b274a890b638e19b2f6",
+    "executable": false
+  },
+  "crates/engine/tests/lift_plan.rs": {
+    "sha256": "9b8e6d8ae96ff9993f47e3e2e26b3b19f61a32ed2872a3e0f4980e5b89c91a1c",
+    "executable": false
+  },
+  "crates/io/src/lib.rs": {
+    "sha256": "ffadfe524fc1e9640149bbc04a47e29464ed9662fce51b6dff24b3f4f1aaf01d",
+    "executable": false
+  },
+  "crates/io/src/lift_package.rs": {
+    "sha256": "ec167be35860b41f0e54a941ae9a45aab96998636551b220111d5f3bc3f11133",
+    "executable": false
+  },
+  "crates/io/src/lift_step_units.rs": {
+    "sha256": "36490c9e581d812737c7ea7694edc73b5d74077e375f18d2c6576633a5e3e099",
+    "executable": false
+  },
+  "crates/kernel/src/lib.rs": {
+    "sha256": "d9d9f72aa7b8fe12c36ba73de7e2108589e7b05ef912f1e65ac2f5027cf68fb9",
+    "executable": false
+  },
+  "crates/kernel/src/step_in/mod.rs": {
+    "sha256": "29eba0002289955a92b3e101a121f0cedc7c105056c4220eaccebc33c23ac6ca",
+    "executable": false
+  },
+  "crates/kernel/src/step_in/p21.rs": {
+    "sha256": "c955ab98280143dae4f396e33f134f5c915d70f16b1b14421bf3857fb1b7175a",
+    "executable": false
+  },
+  "crates/kernel/src/step_in/units_inspect.rs": {
+    "sha256": "bba09516ee3ec3998a38fbddd4b47c276193bbee7cdd994d3bb5333f0b9dce20",
+    "executable": false
+  },
+  "crates/ui-egui/src/browser.rs": {
+    "sha256": "e1db17cda26147fa04a602e5858801eda144a666b99670f1a08f12b660eff917",
+    "executable": false
+  },
+  "crates/ui-egui/src/documents.rs": {
+    "sha256": "39be5349c323d450a042789bdf9a9a42cf5b94e59bed3a69546ed94bc4a2289c",
+    "executable": false
+  },
+  "crates/ui-egui/src/lib.rs": {
+    "sha256": "bf5520f382b60001dd25df9ef90f4943498f2986a77a8fe3ee00f75a243f1cbc",
+    "executable": false
+  },
+  "crates/ui-egui/src/lift_package.rs": {
+    "sha256": "d8a7bee445e5ae5e9e9cf0643934b93a6296a113af77e3a89aac64711785063e",
+    "executable": false
+  },
+  "crates/ui-egui/src/lift_plan.rs": {
+    "sha256": "8f87325b103e562abaab88a5775583a4f431aed74e7caf0940272e702f4c9840",
+    "executable": false
+  },
+  "crates/ui-egui/src/lift_plan_scene.rs": {
+    "sha256": "7e1eb30ce2d3bcde5b324db79a0df864436de44179d1c8b1480ca6b8fde386d4",
+    "executable": false
+  },
+  "crates/ui-egui/src/lift_step_units.rs": {
+    "sha256": "4656ea1f035705930c713045304c460358b57b326948c39ded224f4f9edec335",
+    "executable": false
+  },
+  "crates/ui-egui/src/toolbar.rs": {
+    "sha256": "ca1dc66defc8d0d6c462fc84ddeead16db4eb92158ad29f2c7ce80fad5c235c6",
+    "executable": false
+  },
+  "crates/ui-egui/tests/icon_audit.rs": {
+    "sha256": "01aa7a62be007c20024d6c328f61c616a6d4c96077aad37a3574b130f95bec61",
+    "executable": false
+  },
+  "crates/ui-egui/tests/lift_plan_ui.rs": {
+    "sha256": "d746e26448e80c852714f26e94e4d0355b41d64bb31ddbd3d41b81dc5ef3519f",
+    "executable": false
+  }
+}

@@ -1,0 +1,999 @@
+--- a/apps/solidcraft/Cargo.toml
++++ b/apps/solidcraft/Cargo.toml
+@@ -9,6 +9,8 @@
+ 
+ [features]
+ default = ["raytrace-cpu", "bundled-render-library"]
++# Explicit distribution policy; cannot be disabled by saved settings or a launcher bypass.
++portable = ["solidcraft-engine/portable", "solidcraft-ui-egui/portable"]
+ bundled-render-library = ["solidcraft-engine/bundled-render-library"]
+ raytrace-cpu = ["solidcraft-engine/raytrace-cpu"]
+ 
+--- a/apps/solidcraft/src/control_server.rs
++++ b/apps/solidcraft/src/control_server.rs
+@@ -26,6 +26,9 @@
+ 
+ /// A new random token: 32 bytes from the operating system, as hex.
+ fn new_token() -> Option<String> {
++    if solidcraft_engine::geom::portable::enabled() {
++        return None;
++    }
+     let mut bytes = [0u8; 32];
+     getrandom::fill(&mut bytes).ok()?;
+     Some(bytes.iter().map(|b| format!("{b:02x}")).collect())
+@@ -33,6 +36,9 @@
+ 
+ /// Remove this launch's token file (at exit).
+ pub fn remove_token_file() {
++    if solidcraft_engine::geom::portable::enabled() {
++        return;
++    }
+     if let Ok(files) = TOKEN_FILES.lock() {
+         for p in files.iter() {
+             control_auth::remove_token_file(p);
+@@ -48,6 +54,9 @@
+ 
+ pub fn start(listen_on: control_auth::Listen, ctx: egui::Context) -> Receiver<ControlRequest> {
+     let (tx, rx) = channel::<ControlRequest>();
++    if solidcraft_engine::geom::portable::enabled() {
++        return rx;
++    }
+     // Every connection must show the token before anything runs (docs/control-protocol.md).
+     match control_auth::env_token().or_else(new_token) {
+         Some(token) => {
+@@ -85,6 +94,9 @@
+ /// token file, where the MCP server finds it, so the token never passes through the agent. Its
+ /// requests go to `tx`, where the chat's gate reads them; one may wait long for the user's Allow.
+ pub fn listen_agent(tx: Sender<ControlRequest>, ctx: egui::Context) -> Option<u16> {
++    if solidcraft_engine::geom::portable::enabled() {
++        return None;
++    }
+     let Some(token) = new_token() else {
+         eprintln!("solidcraft: agent chat endpoint not started: no random token available");
+         return None;
+--- a/apps/solidcraft/src/main.rs
++++ b/apps/solidcraft/src/main.rs
+@@ -36,6 +36,7 @@
+ #[cfg(any(target_os = "windows", test))]
+ mod window_fit;
+ 
++use solidcraft_engine::geom::portable;
+ use solidcraft_engine::{Session, io};
+ use solidcraft_ui_egui::{Services, SolveApp};
+ 
+@@ -113,9 +114,11 @@
+                 solidcraft_engine::crash::phase(solidcraft_engine::crash::RUNNING);
+                 // A DMG install has no installer step: put solidcraft-cli on PATH, quietly.
+                 #[cfg(target_os = "macos")]
+-                std::thread::spawn(solidcraft_ui_egui::cli_link::install_on_launch);
++                if !portable::enabled() {
++                    std::thread::spawn(solidcraft_ui_egui::cli_link::install_on_launch);
++                }
+                 // Automation runs (a control port was asked for) leave the user's AI apps alone.
+-                if !self.take_focus_unwanted {
++                if !self.take_focus_unwanted && !portable::enabled() {
+                     solidcraft_ui_egui::ai_connect::begin(&mut self.solve);
+                 }
+                 if let Some(dir) = self.starting.take() {
+@@ -166,6 +169,7 @@
+     }
+     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+         content_ui(&mut self.solve, ui);
++        self.solve.enforce_portable_policy();
+     }
+     fn save(&mut self, storage: &mut dyn eframe::Storage) {
+         storage.set_string(solidcraft_ui_egui::prefs::STORAGE_KEY, self.solve.prefs());
+@@ -338,16 +342,16 @@
+         graphics_adapters: Vec::new(),
+         graphics_path: graphics_path().map(|p| p.to_string_lossy().to_string()),
+         window_system: window_system_now(),
+-        http_get: Some(std::sync::Arc::new(http_get)),
+-        http_download: Some(std::sync::Arc::new(http_download)),
++        http_get: if portable::enabled() { None } else { Some(std::sync::Arc::new(http_get)) },
++        http_download: if portable::enabled() { None } else { Some(std::sync::Arc::new(http_download)) },
+         // Already an installed app: only the browser build offers to install.
+         install_app: None,
+         can_restore: None,
+         restore_file: None,
+         download_design: None,
+         browser_files: None,
+-        agent_http: Some(std::sync::Arc::new(agent_http)),
+-        secrets: Some(std::sync::Arc::new(Keychain)),
++        agent_http: if portable::enabled() { None } else { Some(std::sync::Arc::new(agent_http)) },
++        secrets: if portable::enabled() { None } else { Some(std::sync::Arc::new(Keychain)) },
+         show_in_folder: Some(Box::new(|path| {
+             let folder = std::path::Path::new(path).parent().unwrap_or_else(|| std::path::Path::new("."));
+             let mut command = std::process::Command::new(if cfg!(target_os = "windows") {
+@@ -408,6 +412,9 @@
+ /// URL the user configured, which may be plain HTTP on this computer (Ollama, LM Studio). No
+ /// redirects (a key must not follow one elsewhere), at most 16 MB back.
+ fn agent_http(r: &solidcraft_ui_egui::agent_chat::backend::HttpRequest) -> Result<(u16, Vec<u8>), String> {
++    if portable::enabled() {
++        return Err("AI networking is disabled in the portable build".into());
++    }
+     use std::time::Duration;
+     let tls = ureq::tls::TlsConfig::builder()
+         .root_certs(ureq::tls::RootCerts::PlatformVerifier)
+@@ -446,6 +453,9 @@
+ 
+ impl Keychain {
+     fn entry(id: &str) -> Result<keyring::Entry, String> {
++        if portable::enabled() {
++            return Err("The system keychain is disabled in the portable build".into());
++        }
+         keyring::Entry::new("SolidCraft agent chat", id).map_err(|e| e.to_string())
+     }
+ }
+@@ -472,6 +482,9 @@
+ /// One GET to GitHub: a 200 answer, or why not (rate limits included).
+ fn http_call(url: &str, timeout: std::time::Duration) -> Result<ureq::http::Response<ureq::Body>, solidcraft_ui_egui::update::FetchError> {
+     use solidcraft_ui_egui::update::FetchError;
++    if portable::enabled() {
++        return Err(FetchError::Failed("Updates are disabled in the portable build".into()));
++    }
+     use std::time::Duration;
+     let tls = ureq::tls::TlsConfig::builder()
+         .root_certs(ureq::tls::RootCerts::PlatformVerifier)
+@@ -508,6 +521,9 @@
+ 
+ /// The per-user settings folder: eframe's storage (`app.ron`) and the anti-aliasing preference.
+ fn settings_dir() -> Result<Option<std::path::PathBuf>, String> {
++    if portable::enabled() {
++        return portable::directory("settings").map(Some).ok_or_else(|| "Portable storage is not initialized".into());
++    }
+     let selected = std::env::var_os("SOLIDCRAFT_SETTINGS_DIR");
+     startup::settings_directory(selected.as_deref(), eframe::storage_dir("SolidCraft"))
+ }
+@@ -623,22 +639,33 @@
+ const APP_ID: &str = solidcraft_engine::io::APP_ID;
+ 
+ fn main() -> eframe::Result {
++    if portable::enabled() {
++        let exe = std::env::current_exe().map_err(|e| eframe::Error::AppCreation(e.into()))?;
++        portable::initialize(&exe).map_err(|e| eframe::Error::AppCreation(e.into()))?;
++        eprintln!("SolidCraft portable: isolated storage ready; integrations disabled");
++    }
+     #[cfg(target_os = "macos")]
+     objc2_foundation::NSProcessInfo::processInfo().setProcessName(objc2_foundation::ns_string!("SolidCraft"));
+     mark("main");
+     // Validate before legacy adoption, crash markers or any user preference read.
+     let settings = settings_dir().map_err(|error| eframe::Error::AppCreation(error.into()))?;
+-    if std::env::var_os("SOLIDCRAFT_SETTINGS_DIR").is_none() {
++    if !portable::enabled() && std::env::var_os("SOLIDCRAFT_SETTINGS_DIR").is_none() {
+         adopt_legacy_settings();
+     }
+     let mut safe_mode = startup::env_on(std::env::var(startup::SAFE_MODE_ENV).ok().as_deref());
+-    let mut control_port: Option<u16> = solidcraft_engine::geom::env::var("CONTROL_PORT").and_then(|p| p.parse().ok());
++    let mut control_port: Option<u16> =
++        if portable::enabled() { None } else { solidcraft_engine::geom::env::var("CONTROL_PORT").and_then(|p| p.parse().ok()) };
+     let mut files = Vec::new();
+     let mut sample = false;
+     let mut args = std::env::args().skip(1);
+     while let Some(a) = args.next() {
+         match a.as_str() {
+-            "--control" => control_port = args.next().and_then(|p| p.parse().ok()),
++            "--control" => {
++                if portable::enabled() {
++                    return Err(eframe::Error::AppCreation("The control channel is disabled in the portable build".into()));
++                }
++                control_port = args.next().and_then(|p| p.parse().ok());
++            }
+             "--sample" => sample = true,
+             "--safe-mode" => safe_mode = true,
+             "--version" | "-V" => {
+@@ -722,7 +749,7 @@
+         // Kept with the other settings, not in a folder named after the app id. Safe mode reads
+         // and writes a scratch copy, leaving the user's settings as they were.
+         persistence_path: if safe_mode {
+-            let scratch = std::env::temp_dir().join(format!("solidcraft-safe-mode-{}.ron", std::process::id()));
++            let scratch = io::vfs::temp_dir().join(format!("solidcraft-safe-mode-{}.ron", std::process::id()));
+             let _ = std::fs::remove_file(&scratch);
+             Some(scratch)
+         } else {
+@@ -836,14 +863,18 @@
+             mark("viewport pipelines");
+             // `--control`/the environment name a port; otherwise the preference (on by default)
+             // opens the default one (docs/control-protocol.md).
+-            if let Some(listen_on) = solidcraft_engine::control_auth::plan(control_port, app.preferences.agent_control) {
++            if !portable::enabled()
++                && let Some(listen_on) = solidcraft_engine::control_auth::plan(control_port, app.preferences.agent_control)
++            {
+                 let rx = control_server::start(listen_on, cc.egui_ctx.clone());
+                 app = app.with_control(rx);
+             }
+             // The agent chat's MCP bridge reaches the app through an endpoint of its own, started
+             // on a free port the first time the chat connects (docs/agent-chat.md).
+             let ctx = cc.egui_ctx.clone();
+-            app.agent_chat.control_starter = Some(Box::new(move |tx| control_server::listen_agent(tx, ctx.clone())));
++            if !portable::enabled() {
++                app.agent_chat.control_starter = Some(Box::new(move |tx| control_server::listen_agent(tx, ctx.clone())));
++            }
+             if sample {
+                 if let Err(e) = app.session.run_script(&solidcraft_engine::sample::script()) {
+                     app.set_status(format!("sample: {e}"), true);
+--- /dev/null
++++ b/assets/locales/pending/portable-policy.json
+@@ -0,0 +1,8 @@
++{
++  "en": {
++    "portable.ai_disabled": "This portable build keeps AI integrations, control channels and system credentials disabled."
++  },
++  "es": {
++    "portable.ai_disabled": "Esta versión portable mantiene desactivadas las integraciones IA, los canales de control y las credenciales del sistema."
++  }
++}
+--- /dev/null
++++ b/attribution/pending/portable-policy.md
+@@ -0,0 +1 @@
++| `assets/locales/pending/portable-policy.json` | SolidCraft contributors | Original English and Spanish portable-distribution policy message | MIT OR Apache-2.0 |
+--- a/crates/engine/Cargo.toml
++++ b/crates/engine/Cargo.toml
+@@ -10,6 +10,7 @@
+ 
+ [features]
+ default = []
++portable = ["solidcraft-geom/portable"]
+ # Optional authored texture/HDR bytes; the command registry and metadata remain available.
+ bundled-render-library = []
+ raytrace-cpu = ["solidcraft-render/raytrace-cpu"]
+--- a/crates/engine/src/crash.rs
++++ b/crates/engine/src/crash.rs
+@@ -133,6 +133,9 @@
+     // Tests never touch the user's real crash folder.
+     if cfg!(test) {
+         return Some(std::env::temp_dir().join(format!("solidcraft-test-crashes-{}", std::process::id())));
++    }
++    if solidcraft_geom::portable::enabled() {
++        return solidcraft_geom::portable::directory("crashes");
+     }
+     if let Some(d) = solidcraft_geom::env::var_os("CRASH_DIR").filter(|d| !d.is_empty()) {
+         return Some(PathBuf::from(d));
+--- a/crates/engine/src/recovery.rs
++++ b/crates/engine/src/recovery.rs
+@@ -26,6 +26,9 @@
+     // Tests never touch the user's real recovery folder.
+     if cfg!(test) {
+         return Some(solidcraft_io::vfs::temp_dir().join(format!("solidcraft-test-recovery-{}", std::process::id())));
++    }
++    if solidcraft_geom::portable::enabled() {
++        return solidcraft_geom::portable::directory("recovery");
+     }
+     if let Some(d) = solidcraft_geom::env::var_os("RECOVERY_DIR").filter(|d| !d.is_empty()) {
+         return Some(long_names(Path::new(&d)));
+@@ -55,6 +58,9 @@
+ /// `~/Library/Application Support/SolidCraft`, or `$XDG_DATA_HOME/solidcraft`
+ /// (`~/.local/share/solidcraft`).
+ pub fn data_dir() -> Option<PathBuf> {
++    if solidcraft_geom::portable::enabled() {
++        return solidcraft_geom::portable::root();
++    }
+     let env = |k: &str| std::env::var_os(k).filter(|d| !d.is_empty()).map(PathBuf::from);
+     if cfg!(windows) {
+         Some(env("LOCALAPPDATA")?.join("SolidCraft"))
+--- a/crates/engine/tests/lift_plan.rs
++++ b/crates/engine/tests/lift_plan.rs
+@@ -8,10 +8,25 @@
+ use solidcraft_doc::{IDENTITY, Mat};
+ use solidcraft_engine::{EngineError, Session};
+ 
++/// Each integration-test executable initializes its own portable storage before VFS helpers.
++/// This is not a production fallback: the real host still fails closed before initialization.
++fn initialize_portable_test_storage() {
++    if !solidcraft_engine::geom::portable::enabled() {
++        return;
++    }
++    static INIT: std::sync::OnceLock<Result<(), String>> = std::sync::OnceLock::new();
++    let result = INIT.get_or_init(|| {
++        let exe = std::env::current_exe().map_err(|e| e.to_string())?;
++        solidcraft_engine::geom::portable::initialize(&exe).map_err(|e| e.to_string())
++    });
++    assert!(result.is_ok(), "portable test storage: {result:?}");
++}
++
+ const KEY: &str = "com.skm.liftplan";
+ type TestResult = Result<(), Box<dyn Error>>;
+ 
+ fn run(s: &mut Session, command: &str, params: Value) -> Result<Value, EngineError> {
++    initialize_portable_test_storage();
+     s.execute(command, &params)
+ }
+ 
+@@ -37,9 +52,13 @@
+ }
+ 
+ fn scratch(label: &str) -> Result<PathBuf, Box<dyn Error>> {
++    initialize_portable_test_storage();
+     static NEXT: AtomicUsize = AtomicUsize::new(0);
+-    let directory =
+-        std::env::temp_dir().join(format!("solidcraft-native-lift-{}-{}-{label}", std::process::id(), NEXT.fetch_add(1, Ordering::Relaxed)));
++    let directory = solidcraft_engine::io::vfs::temp_dir().join(format!(
++        "solidcraft-native-lift-{}-{}-{label}",
++        std::process::id(),
++        NEXT.fetch_add(1, Ordering::Relaxed)
++    ));
+     std::fs::create_dir_all(&directory)?;
+     Ok(directory)
+ }
+--- a/crates/geom/Cargo.toml
++++ b/crates/geom/Cargo.toml
+@@ -8,6 +8,10 @@
+ [lints]
+ workspace = true
+ 
++[features]
++# Application-owned storage and offline integration policy for the portable desktop build.
++portable = []
++
+ [dependencies]
+ serde = { workspace = true }
+ thiserror = { workspace = true }
+--- a/crates/geom/src/lib.rs
++++ b/crates/geom/src/lib.rs
+@@ -25,6 +25,7 @@
+ pub mod mesh_distance;
+ pub mod network;
+ mod plane;
++pub mod portable;
+ mod profile;
+ pub mod section;
+ pub mod simplify;
+--- /dev/null
++++ b/crates/geom/src/portable.rs
+@@ -0,0 +1,209 @@
++//! Compile-time, app-only portable distribution policy and application-owned paths.
++//!
++//! The desktop initializes these before reading preferences or starting any service. There
++//! is no environment switch or preference that disables portable mode. This is filesystem
++//! placement, not an OS sandbox: files the user explicitly opens/saves retain their paths.
++
++use std::io::{Error, ErrorKind, Result, Write};
++use std::path::{Path, PathBuf};
++use std::sync::OnceLock;
++
++static ROOT: OnceLock<PathBuf> = OnceLock::new();
++const CHILDREN: &[&str] = &["settings", "recovery", "crashes", "temp", "plugins", "thumbnails"];
++
++/// Set by Cargo for the portable distribution, never by saved preferences or an environment variable.
++pub const fn enabled() -> bool {
++    cfg!(feature = "portable")
++}
++
++/// The already-validated root. None before initialization; callers must not fall back to AppData.
++pub fn root() -> Option<PathBuf> {
++    ROOT.get().cloned()
++}
++
++/// A known application-owned child, never an arbitrary or user-supplied path.
++pub fn directory(name: &str) -> Option<PathBuf> {
++    CHILDREN.contains(&name).then(|| ROOT.get().map(|p| p.join(name))).flatten()
++}
++
++/// Infallible legacy temp APIs get an invalid filename until initialized, not a user-profile fallback.
++/// A NUL is rejected by the filesystem APIs on all supported native systems.
++pub fn temp_dir() -> PathBuf {
++    directory("temp").unwrap_or_else(|| PathBuf::from("\0SolidCraft portable storage is not initialized"))
++}
++
++/// Initialize exactly once, before preferences, recovery, crashes, network or plugin discovery.
++/// A failure is returned to the host; it must stop instead of running with non-portable paths.
++pub fn initialize(executable: &Path) -> Result<()> {
++    if !enabled() {
++        return Err(Error::other("this is not a portable SolidCraft build"));
++    }
++    if ROOT.get().is_some() {
++        return Err(Error::new(ErrorKind::AlreadyExists, "portable storage is already initialized"));
++    }
++    ROOT.set(prepare(executable)?).map_err(|_| Error::new(ErrorKind::AlreadyExists, "portable storage was initialized concurrently"))
++}
++
++fn prepare(executable: &Path) -> Result<PathBuf> {
++    if !executable.is_absolute() || !executable.is_file() {
++        return Err(Error::new(ErrorKind::InvalidInput, "portable executable must be an existing absolute file"));
++    }
++    let parent = executable.parent().ok_or_else(|| Error::new(ErrorKind::InvalidInput, "portable executable has no parent"))?;
++    let parent = std::fs::canonicalize(parent)?;
++    let root = parent.join("data");
++    make_directory(&root)?;
++    if std::fs::canonicalize(&root)?.parent() != Some(parent.as_path()) {
++        return Err(Error::new(ErrorKind::InvalidInput, "portable data directory resolves outside the executable folder"));
++    }
++    for child in CHILDREN {
++        make_directory(&root.join(child))?;
++    }
++    Ok(root)
++}
++
++fn make_directory(path: &Path) -> Result<()> {
++    match std::fs::symlink_metadata(path) {
++        Ok(meta) if is_redirect(&meta) || !meta.is_dir() => {
++            return Err(Error::new(
++                ErrorKind::InvalidInput,
++                format!("portable directory must be a real directory, not a link or file: {}", path.display()),
++            ));
++        }
++        Ok(_) => {}
++        Err(e) if e.kind() == ErrorKind::NotFound => std::fs::create_dir(path)?,
++        Err(e) => return Err(e),
++    }
++    // Never truncate a pre-existing probe or change permissions. A stale probe is a visible error.
++    let probe = path.join(format!(".solidcraft-write-check-{}", std::process::id()));
++    let mut file = std::fs::OpenOptions::new().write(true).create_new(true).open(&probe)?;
++    let written = file.write_all(b"SolidCraft portable storage check\n");
++    drop(file);
++    let removed = std::fs::remove_file(probe);
++    written?;
++    removed
++}
++
++fn is_redirect(meta: &std::fs::Metadata) -> bool {
++    if meta.file_type().is_symlink() {
++        return true;
++    }
++    #[cfg(windows)]
++    {
++        use std::os::windows::fs::MetadataExt;
++        // Junctions and other reparse points may not report themselves as a symlink.
++        if meta.file_attributes() & 0x400 != 0 {
++            return true;
++        }
++    }
++    false
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use std::sync::atomic::{AtomicU64, Ordering};
++    static NEXT: AtomicU64 = AtomicU64::new(0);
++
++    struct Fixture(PathBuf);
++    impl Fixture {
++        fn new() -> Result<Self> {
++            let dir =
++                std::env::temp_dir().join(format!("solidcraft-portable-policy-{}-{}", std::process::id(), NEXT.fetch_add(1, Ordering::Relaxed)));
++            std::fs::create_dir(&dir)?;
++            std::fs::write(dir.join("solidcraft.exe"), b"test path only; not an executable")?;
++            Ok(Self(dir))
++        }
++        fn exe(&self) -> PathBuf {
++            self.0.join("solidcraft.exe")
++        }
++    }
++    impl Drop for Fixture {
++        fn drop(&mut self) {
++            let _ = std::fs::remove_dir_all(&self.0);
++        }
++    }
++
++    #[test]
++    fn compile_time_policy_matches_feature() {
++        assert_eq!(enabled(), cfg!(feature = "portable"));
++    }
++
++    #[test]
++    fn uninitialized_paths_never_fall_back() {
++        assert!(root().is_none());
++        assert!(directory("settings").is_none());
++        assert!(directory("../outside").is_none());
++        assert!(std::fs::File::create(temp_dir().join("probe")).is_err());
++    }
++
++    #[test]
++    fn state_is_beside_executable_and_all_children_are_ready() -> Result<()> {
++        let f = Fixture::new()?;
++        let root = prepare(&f.exe())?;
++        assert_eq!(root, std::fs::canonicalize(&f.0)?.join("data"));
++        for child in CHILDREN {
++            assert!(root.join(child).is_dir());
++        }
++        assert!(!root.join(format!(".solidcraft-write-check-{}", std::process::id())).exists());
++        Ok(())
++    }
++
++    #[test]
++    fn second_prepare_preserves_existing_state() -> Result<()> {
++        let f = Fixture::new()?;
++        let root = prepare(&f.exe())?;
++        std::fs::write(root.join("settings/app.ron"), b"kept")?;
++        assert_eq!(prepare(&f.exe())?, root);
++        assert_eq!(std::fs::read(root.join("settings/app.ron"))?, b"kept");
++        Ok(())
++    }
++
++    #[test]
++    fn relative_or_missing_executable_is_refused() -> Result<()> {
++        let f = Fixture::new()?;
++        assert!(prepare(Path::new("solidcraft.exe")).is_err());
++        assert!(prepare(&f.0.join("missing.exe")).is_err());
++        Ok(())
++    }
++
++    #[test]
++    fn existing_data_file_is_not_overwritten() -> Result<()> {
++        let f = Fixture::new()?;
++        std::fs::write(f.0.join("data"), b"keep me")?;
++        assert!(prepare(&f.exe()).is_err());
++        assert_eq!(std::fs::read(f.0.join("data"))?, b"keep me");
++        Ok(())
++    }
++
++    #[test]
++    fn existing_child_file_is_not_overwritten() -> Result<()> {
++        let f = Fixture::new()?;
++        std::fs::create_dir(f.0.join("data"))?;
++        std::fs::write(f.0.join("data/settings"), b"keep me")?;
++        assert!(prepare(&f.exe()).is_err());
++        assert_eq!(std::fs::read(f.0.join("data/settings"))?, b"keep me");
++        Ok(())
++    }
++
++    #[test]
++    fn existing_probe_is_never_truncated() -> Result<()> {
++        let f = Fixture::new()?;
++        std::fs::create_dir(f.0.join("data"))?;
++        let probe = f.0.join("data").join(format!(".solidcraft-write-check-{}", std::process::id()));
++        std::fs::write(&probe, b"keep me")?;
++        assert!(prepare(&f.exe()).is_err());
++        assert_eq!(std::fs::read(probe)?, b"keep me");
++        Ok(())
++    }
++
++    #[cfg(unix)]
++    #[test]
++    fn linked_data_directory_is_refused_without_touching_destination() -> Result<()> {
++        let f = Fixture::new()?;
++        let outside = Fixture::new()?;
++        std::os::unix::fs::symlink(&outside.0, f.0.join("data"))?;
++        assert!(prepare(&f.exe()).is_err());
++        assert!(!outside.0.join("settings").exists());
++        Ok(())
++    }
++}
+--- a/crates/io/src/vfs.rs
++++ b/crates/io/src/vfs.rs
+@@ -388,6 +388,9 @@
+ /// The temporary folder spelled with long names ([`long_names`]), for the folders SolidCraft
+ /// makes in it.
+ pub fn temp_dir() -> std::path::PathBuf {
++    if solidcraft_geom::portable::enabled() {
++        return long_names(&solidcraft_geom::portable::temp_dir());
++    }
+     long_names(&std::env::temp_dir())
+ }
+ 
+--- a/crates/ui-egui/Cargo.toml
++++ b/crates/ui-egui/Cargo.toml
+@@ -7,6 +7,9 @@
+ 
+ [lints]
+ workspace = true
++
++[features]
++portable = ["solidcraft-engine/portable"]
+ 
+ [dependencies]
+ solidcraft-engine = { workspace = true }
+@@ -61,3 +64,7 @@
+ serde_json = { workspace = true }
+ # Reads assets/icons/ui/design/palette.toml and aliases.toml into compiled tables.
+ toml = { workspace = true }
++
++[[test]]
++name = "portable_policy"
++required-features = ["portable"]
+--- a/crates/ui-egui/src/agent_chat/mod.rs
++++ b/crates/ui-egui/src/agent_chat/mod.rs
+@@ -687,7 +687,7 @@
+ 
+ /// The AI features are on (the master switch in Settings → AI) and this is the desktop app.
+ pub fn shown(app: &SolveApp) -> bool {
+-    app.preferences.ai_features && cfg!(not(target_arch = "wasm32"))
++    app.preferences.ai_features && cfg!(not(target_arch = "wasm32")) && !solidcraft_engine::geom::portable::enabled()
+ }
+ 
+ /// The Assistant button in the application bar is shown (honours the existing preference).
+@@ -776,7 +776,7 @@
+ fn working_dir() -> std::path::PathBuf {
+     let d = solidcraft_engine::recovery::data_dir()
+         .map(|d| d.join("agent-chat").join("work"))
+-        .unwrap_or_else(|| std::env::temp_dir().join("solidcraft-agent-chat"));
++        .unwrap_or_else(|| solidcraft_engine::io::vfs::temp_dir().join("solidcraft-agent-chat"));
+     #[cfg(not(target_arch = "wasm32"))]
+     let _ = std::fs::create_dir_all(&d);
+     d
+@@ -785,6 +785,9 @@
+ /// Start the agent: the chat's control endpoint for its MCP bridge if needed, the process.
+ #[cfg(not(target_arch = "wasm32"))]
+ pub fn connect(app: &mut SolveApp, ctx: &egui::Context) {
++    if solidcraft_engine::geom::portable::enabled() {
++        return;
++    }
+     disconnect(app);
+     let Some(entry) = agents::current(app) else {
+         app.agent_chat.notice(tr("ui.agent_chat_none_found"), true);
+@@ -1623,6 +1626,9 @@
+ /// Look for installed agents in the background (cached; Refresh looks again).
+ #[cfg(not(target_arch = "wasm32"))]
+ pub fn refresh(app: &mut SolveApp, ctx: &egui::Context) {
++    if solidcraft_engine::geom::portable::enabled() {
++        return;
++    }
+     if app.agent_chat.detecting.is_some() {
+         return;
+     }
+@@ -1760,6 +1766,9 @@
+ /// `permission` (an option id, or `"cancel"`), `approve` (`true`/`false`, the oldest held
+ /// request), `cancel` (Stop), `send_now` (steer: stop, then send the queue), `remove_pending` (index), `undo` (the newest message's changes); returns the panel's state.
+ pub fn control(app: &mut SolveApp, ctx: &egui::Context, p: &Value) -> Result<Value, String> {
++    if solidcraft_engine::geom::portable::enabled() {
++        return Err("AI integrations are disabled in the portable build".into());
++    }
+     if let Some(e) = p.get("features").and_then(Value::as_bool) {
+         app.preferences.ai_features = e;
+     }
+--- a/crates/ui-egui/src/agent_chat/settings.rs
++++ b/crates/ui-egui/src/agent_chat/settings.rs
+@@ -58,6 +58,9 @@
+ 
+ /// Open the Add agent dialog.
+ pub fn open_add(app: &mut SolveApp) {
++    if solidcraft_engine::geom::portable::enabled() {
++        return;
++    }
+     let preset = agents::OPENAI_PRESETS.first();
+     app.agent_chat.settings.add = Some(AddState {
+         base_url: preset.map(|p| p.base_url.to_string()).unwrap_or_default(),
+@@ -85,6 +88,9 @@
+ /// for its models).
+ #[cfg(not(target_arch = "wasm32"))]
+ fn start_test(app: &SolveApp, e: &agents::Entry, key: Option<String>) -> Test {
++    if solidcraft_engine::geom::portable::enabled() {
++        return Test::Done(Err(tr("portable.ai_disabled").into()));
++    }
+     let (tx, rx) = std::sync::mpsc::channel();
+     match e.kind {
+         Kind::Acp => {
+@@ -137,6 +143,10 @@
+ /// The Assistant page of Settings. Copy stays close to its control; full security details
+ /// remain accessible on hover, and high-risk permissions always retain a visible warning.
+ pub fn page(app: &mut SolveApp, ui: &mut egui::Ui) {
++    if solidcraft_engine::geom::portable::enabled() {
++        ui_kit::text(ui, tr("portable.ai_disabled"), ui_kit::Text::Note("portable_policy"));
++        return;
++    }
+     ui_kit::settings_heading(ui, tr("prefs.assistant"), tr("ai.prefs.intro"));
+     ui_kit::settings_section(ui, "assistant_availability", tr("ai.prefs.availability"), |ui| {
+         let response =
+@@ -441,6 +451,9 @@
+ 
+ /// The Add agent dialog (drawn every frame while it is open).
+ pub fn dialog(app: &mut SolveApp, ctx: &egui::Context) {
++    if solidcraft_engine::geom::portable::enabled() {
++        return;
++    }
+     if app.agent_chat.settings.add.is_none() {
+         return;
+     }
+--- a/crates/ui-egui/src/ai_connect.rs
++++ b/crates/ui-egui/src/ai_connect.rs
+@@ -19,7 +19,7 @@
+ 
+ /// Start managing the client files for this run (the desktop app's normal launch).
+ pub fn begin(app: &mut SolveApp) {
+-    app.ai_connect.armed = !cfg!(target_arch = "wasm32");
++    app.ai_connect.armed = !cfg!(target_arch = "wasm32") && !solidcraft_engine::geom::portable::enabled();
+ }
+ 
+ /// The clients already announced, so a client is named once however often its entry is made again.
+@@ -58,6 +58,9 @@
+ 
+ #[cfg(not(target_arch = "wasm32"))]
+ fn spawn(remove: bool) -> Option<std::sync::mpsc::Receiver<Vec<&'static str>>> {
++    if solidcraft_engine::geom::portable::enabled() {
++        return None;
++    }
+     use solidcraft_engine::agent_setup as setup;
+     let cli = crate::agent_chat::find_cli()?;
+     let cli = setup::plain_path(&cli.canonicalize().unwrap_or(cli));
+@@ -88,6 +91,9 @@
+ /// Every frame: start the job when the preference differs from what was last done, and report
+ /// what a finished one found.
+ pub fn tick(app: &mut SolveApp) {
++    if solidcraft_engine::geom::portable::enabled() {
++        return;
++    }
+     if !app.ai_connect.armed {
+         return;
+     }
+--- a/crates/ui-egui/src/control.rs
++++ b/crates/ui-egui/src/control.rs
+@@ -1057,7 +1057,8 @@
+         buf.extend_from_slice(&c.to_array());
+     }
+     let Some(img) = image::RgbaImage::from_raw(w as u32, h as u32, buf) else { return json!({"ok": false, "error": "bad image"}) };
+-    let path = path.map(str::to_string).unwrap_or_else(|| std::env::temp_dir().join("solidcraft-shot.png").to_string_lossy().to_string());
++    let path =
++        path.map(str::to_string).unwrap_or_else(|| solidcraft_engine::io::vfs::temp_dir().join("solidcraft-shot.png").to_string_lossy().to_string());
+     match img.save(&path) {
+         Ok(()) => json!({"ok": true, "result": {"path": path, "width": w, "height": h}}),
+         Err(e) => json!({"ok": false, "error": e.to_string()}),
+--- a/crates/ui-egui/src/help.rs
++++ b/crates/ui-egui/src/help.rs
+@@ -71,6 +71,9 @@
+ #[cfg(not(target_arch = "wasm32"))]
+ fn connect_assistants() -> Vec<String> {
+     use solidcraft_engine::agent_setup as setup;
++    if solidcraft_engine::geom::portable::enabled() {
++        return vec![crate::i18n::tr("portable.ai_disabled").into()];
++    }
+     let Some(cli) = crate::agent_chat::find_cli() else {
+         return vec!["solidcraft-cli was not found next to SolidCraft; run `solidcraft-cli mcp setup` from a terminal.".into()];
+     };
+@@ -130,6 +133,7 @@
+                     ]
+                     .into_iter()
+                     .filter(|(id, ..)| *id != "install_cli" || cfg!(target_os = "macos"))
++                    .filter(|(id, ..)| !solidcraft_engine::geom::portable::enabled() || !matches!(*id, "connect" | "install_cli"))
+                     {
+                         if crate::context_menu::list_row(ui, &crate::context_menu::Item::action(id, label, icon)).is_some() {
+                             pick = Some(id);
+--- a/crates/ui-egui/src/home.rs
++++ b/crates/ui-egui/src/home.rs
+@@ -150,6 +150,9 @@
+     key.hash(&mut h);
+     meta.len().hash(&mut h);
+     meta.modified().ok()?.duration_since(std::time::UNIX_EPOCH).ok()?.hash(&mut h);
++    if solidcraft_engine::geom::portable::enabled() {
++        return solidcraft_engine::geom::portable::directory("thumbnails").map(|p| p.join(format!("{:016x}.png", h.finish())));
++    }
+     let root = std::env::var_os("LOCALAPPDATA")
+         .or_else(|| std::env::var_os("XDG_CACHE_HOME"))
+         .map(std::path::PathBuf::from)
+--- a/crates/ui-egui/src/lib.rs
++++ b/crates/ui-egui/src/lib.rs
+@@ -92,9 +92,9 @@
+ pub mod keymap;
+ mod length_input;
+ mod lift_package;
+-mod lift_step_units;
+ pub mod lift_plan;
+ mod lift_plan_scene;
++mod lift_step_units;
+ mod linked_source;
+ #[cfg(test)]
+ mod loft_rails_dialog_tests;
+@@ -584,7 +584,7 @@
+         }
+         let mut render_workspace = render_workspace::State::default();
+         render_workspace.image_host = image_host;
+-        SolveApp {
++        let mut app = SolveApp {
+             session,
+             ui: UiState::default(),
+             shell: Default::default(),
+@@ -681,6 +681,24 @@
+             applied_fonts_language: "en".into(),
+             applied_ui_font: String::new(),
+             applied_system_fonts: false,
++        };
++        app.enforce_portable_policy();
++        app
++    }
++
++    /// Distribution policy outranks preferences, including reloaded or manually edited settings.
++    pub fn enforce_portable_policy(&mut self) {
++        if solidcraft_engine::geom::portable::enabled() {
++            self.preferences.ai_features = false;
++            self.preferences.agent_control = false;
++            self.preferences.connect_ai_apps = false;
++            self.preferences.check_updates = false;
++            self.services.agent_http = None;
++            self.services.secrets = None;
++            self.services.http_get = None;
++            self.services.http_download = None;
++            self.agent_chat.control_starter = None;
++            self.control_rx = None;
+         }
+     }
+ 
+@@ -844,6 +862,7 @@
+         if let Some(a) = v.get("agent_cursor").and_then(|a| serde_json::from_value(a.clone()).ok()) {
+             self.ui.agent_cursor = a;
+         }
++        self.enforce_portable_policy();
+     }
+ 
+     pub fn with_control(mut self, rx: Receiver<ControlRequest>) -> Self {
+@@ -1678,6 +1697,7 @@
+ 
+     /// Per-frame logic before layout.
+     pub fn logic(&mut self, ctx: &egui::Context) {
++        self.enforce_portable_policy();
+         frame_watch::begin(self);
+         file_picker::tick(self, ctx);
+         render_workspace::sync_backend(self);
+--- a/crates/ui-egui/src/update.rs
++++ b/crates/ui-egui/src/update.rs
+@@ -564,12 +564,18 @@
+ 
+ /// Checks may run here: a release build with the host's HTTP client, or a test feed.
+ pub fn available(app: &mut SolveApp) -> bool {
+-    !app.updater.off && (app.updater.feed.is_some() || (app.services.http_get.is_some() && app.updater.kind().checks()))
++    !solidcraft_engine::geom::portable::enabled()
++        && !app.updater.off
++        && (app.updater.feed.is_some() || (app.services.http_get.is_some() && app.updater.kind().checks()))
+ }
+ 
+ /// Per frame: the first frame of each launch starts an automatic check, the open app checks
+ /// again once a day (an hour after a failure), and a finished check is collected.
+ pub fn tick(app: &mut SolveApp, ctx: &egui::Context) {
++    if solidcraft_engine::geom::portable::enabled() {
++        app.updater.off = true;
++        return;
++    }
+     poll_install(app);
+     // Quitting to restart or install was cancelled (a "save changes?" answered Cancel).
+     if app.updater.launch.is_some() && app.docs.quitting.is_none() && !app.quit_requested {
+@@ -678,6 +684,9 @@
+ 
+ /// How this installation updates in place, when the host can download (None: Download only).
+ pub fn install_method(app: &mut SolveApp) -> Option<install::Method> {
++    if solidcraft_engine::geom::portable::enabled() {
++        return None;
++    }
+     if app.services.http_get.is_none() || app.services.http_download.is_none() {
+         return None;
+     }
+@@ -763,6 +772,9 @@
+ 
+ /// Restart now: close (asking about unsaved designs), then start the new version.
+ pub fn restart(app: &mut SolveApp) {
++    if solidcraft_engine::geom::portable::enabled() {
++        return;
++    }
+     if let Some(Ok(install::Outcome::Restart(program))) = &app.updater.installed {
+         app.updater.launch = Some((program.clone(), Vec::new()));
+         crate::documents::request_quit(app);
+@@ -771,6 +783,9 @@
+ 
+ /// For the host, as SolidCraft exits: the program to start (the new version, an installer).
+ pub fn take_launch(app: &mut SolveApp) -> Option<(PathBuf, Vec<String>)> {
++    if solidcraft_engine::geom::portable::enabled() {
++        return None;
++    }
+     app.updater.launch.take()
+ }
+ 
+--- a/crates/ui-egui/tests/lift_plan_ui.rs
++++ b/crates/ui-egui/tests/lift_plan_ui.rs
+@@ -8,6 +8,20 @@
+ use serde_json::json;
+ use solidcraft_engine::Session;
+ use solidcraft_ui_egui::{lift_plan, scenario, scenario::Harness, shell::LayoutMode};
++
++/// Each integration-test executable initializes its own portable storage before VFS helpers.
++/// This is not a production fallback: the real host still fails closed before initialization.
++fn initialize_portable_test_storage() {
++    if !solidcraft_engine::geom::portable::enabled() {
++        return;
++    }
++    static INIT: std::sync::OnceLock<Result<(), String>> = std::sync::OnceLock::new();
++    let result = INIT.get_or_init(|| {
++        let exe = std::env::current_exe().map_err(|e| e.to_string())?;
++        solidcraft_engine::geom::portable::initialize(&exe).map_err(|e| e.to_string())
++    });
++    assert!(result.is_ok(), "portable test storage: {result:?}");
++}
+ 
+ #[derive(Debug, PartialEq, Eq)]
+ struct DesignSnapshot {
+@@ -80,6 +94,7 @@
+ }
+ 
+ fn harness() -> Harness {
++    initialize_portable_test_storage();
+     let mut h = Harness::new();
+     h.app.home.open = false;
+     h.app.preferences.language = "en".into();
+--- /dev/null
++++ b/crates/ui-egui/tests/portable_policy.rs
+@@ -0,0 +1,99 @@
++//! Portable-distribution policy: user preferences cannot enable integrations.
++
++use serde_json::json;
++use solidcraft_engine::Session;
++use solidcraft_ui_egui::{Services, SolveApp, agent_chat, ai_connect, update};
++use std::sync::atomic::{AtomicUsize, Ordering};
++
++/// Each integration-test executable initializes its own portable storage before VFS helpers.
++/// This is not a production fallback: the real host still fails closed before initialization.
++fn initialize_portable_test_storage() {
++    if !solidcraft_engine::geom::portable::enabled() {
++        return;
++    }
++    static INIT: std::sync::OnceLock<Result<(), String>> = std::sync::OnceLock::new();
++    let result = INIT.get_or_init(|| {
++        let exe = std::env::current_exe().map_err(|e| e.to_string())?;
++        solidcraft_engine::geom::portable::initialize(&exe).map_err(|e| e.to_string())
++    });
++    assert!(result.is_ok(), "portable test storage: {result:?}");
++}
++
++#[test]
++fn portable_policy_defaults_and_saved_preferences_cannot_enable_integrations() {
++    initialize_portable_test_storage();
++    let mut app = SolveApp::new(Session::default(), Services::default());
++    assert!(!app.preferences.ai_features);
++    assert!(!app.preferences.agent_control);
++    assert!(!app.preferences.connect_ai_apps);
++    assert!(!app.preferences.check_updates);
++    app.load_prefs(
++        &json!({"preferences": {
++            "ai_features": true, "agent_control": true, "connect_ai_apps": true, "check_updates": true
++        }})
++        .to_string(),
++    );
++    assert!(!app.preferences.ai_features);
++    assert!(!app.preferences.agent_control);
++    assert!(!app.preferences.connect_ai_apps);
++    assert!(!app.preferences.check_updates);
++}
++
++#[test]
++fn portable_policy_host_services_are_removed_before_use() {
++    initialize_portable_test_storage();
++    let calls = std::sync::Arc::new(AtomicUsize::new(0));
++    let counted = calls.clone();
++    let mut services = Services::default();
++    services.http_get = Some(std::sync::Arc::new(move |_| {
++        counted.fetch_add(1, Ordering::Relaxed);
++        Err(update::FetchError::Failed("test callback must stay unused".into()))
++    }));
++    let app = SolveApp::new(Session::default(), services);
++    assert!(app.services.http_get.is_none());
++    assert!(app.services.http_download.is_none());
++    assert!(app.services.agent_http.is_none());
++    assert!(app.services.secrets.is_none());
++    assert!(app.agent_chat.control_starter.is_none());
++    assert_eq!(calls.load(Ordering::Relaxed), 0);
++}
++
++#[test]
++fn portable_policy_direct_actions_do_not_override_distribution() {
++    initialize_portable_test_storage();
++    let mut app = SolveApp::new(Session::default(), Services::default());
++    let ctx = egui::Context::default();
++    app.preferences.ai_features = true;
++    app.preferences.connect_ai_apps = true;
++    assert!(!agent_chat::shown(&app));
++    assert!(agent_chat::control(&mut app, &ctx, &json!({"features": true})).is_err());
++    agent_chat::settings::open_add(&mut app);
++    assert!(app.agent_chat.settings.add.is_none());
++    ai_connect::begin(&mut app);
++    ai_connect::tick(&mut app);
++    app.enforce_portable_policy();
++    assert!(!app.preferences.ai_features);
++    assert!(!app.preferences.connect_ai_apps);
++}
++
++#[test]
++fn portable_policy_update_checks_and_installers_stay_disabled() {
++    initialize_portable_test_storage();
++    let mut app = SolveApp::new(Session::default(), Services::default());
++    let calls = std::sync::Arc::new(AtomicUsize::new(0));
++    let counted = calls.clone();
++    app.services.http_get = Some(std::sync::Arc::new(move |_| {
++        counted.fetch_add(1, Ordering::Relaxed);
++        Err(update::FetchError::Failed("test callback must stay unused".into()))
++    }));
++    app.preferences.check_updates = true;
++    let ctx = egui::Context::default();
++    assert!(!update::available(&mut app));
++    update::tick(&mut app, &ctx);
++    update::check_now(&mut app, &ctx);
++    update::start_install(&mut app, &ctx);
++    update::restart(&mut app);
++    assert!(update::install_method(&mut app).is_none());
++    assert!(update::take_launch(&mut app).is_none());
++    assert_eq!(calls.load(Ordering::Relaxed), 0);
++}
