@@ -13,7 +13,7 @@ concurrency:
 jobs:
   portable:
     runs-on: windows-2022
-    timeout-minutes: 120
+    timeout-minutes: 180
     defaults:
       run:
         shell: pwsh
@@ -52,11 +52,27 @@ jobs:
         run: |
           powershell.exe -NoProfile -File ci/package-windows-portable.ps1 -Exe build-source/target/x86_64-pc-windows-msvc/release/solidcraft.exe -SourceRoot build-source -BuildReceipt build-evidence/build-receipt.json -SmokeResult build-evidence/gui/smoke-result.json -OutputDir dist
           if ($LASTEXITCODE -ne 0) { throw 'Portable packaging failed' }
+      - name: Preserve intermediate executable only when QA is incomplete
+        if: failure() || cancelled()
+        run: |
+          $exe = 'build-source/target/x86_64-pc-windows-msvc/release/solidcraft.exe'
+          if (Test-Path -LiteralPath $exe -PathType Leaf) {
+            $stage = 'build-evidence/NO_QA-intermediate'
+            New-Item -ItemType Directory -Path $stage -Force | Out-Null
+            Copy-Item -LiteralPath $exe -Destination (Join-Path $stage 'solidcraft.exe')
+            foreach ($f in @('LICENSE-MIT','LICENSE-APACHE','NOTICE','THIRD-PARTY-LICENSES.txt','ATTRIBUTION.md')) {
+              Copy-Item -LiteralPath (Join-Path 'build-source' $f) -Destination (Join-Path $stage $f)
+            }
+            'SIN PRUEBAS COMPLETAS / NO_QA. Intermedio para diagnostico, no entrega aprobada. RT750 NOT_VALIDATED.' | Set-Content (Join-Path $stage 'NO_QA.txt')
+            Get-FileHash -LiteralPath $exe -Algorithm SHA256 | Format-List | Out-String | Set-Content (Join-Path $stage 'EXE-SHA256.txt')
+            Compress-Archive -LiteralPath $stage -DestinationPath 'build-evidence/NO_QA-intermediate.zip'
+            Remove-Item -LiteralPath $stage -Recurse -Force
+          }
       - name: Bound private artifacts within included storage
         id: artifact_bound
         if: always()
         run: |
-          $files = @(Get-ChildItem dist -File -ErrorAction SilentlyContinue) + @(Get-ChildItem build-evidence -File -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.Extension -in '.json','.log','.png','.txt' })
+          $files = @(Get-ChildItem dist -File -ErrorAction SilentlyContinue) + @(Get-ChildItem build-evidence -File -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.Extension -in '.json','.log','.png','.txt','.zip' })
           $bytes = ($files | Measure-Object Length -Sum).Sum
           if ($bytes -gt 250MB) { throw "Artifact cap exceeded: $bytes bytes; nothing will be uploaded" }
       - name: Private artifact, one day retention, no release
@@ -75,3 +91,4 @@ jobs:
             build-evidence/**/*.log
             build-evidence/**/*.png
             build-evidence/**/*.txt
+            build-evidence/NO_QA-intermediate.zip
