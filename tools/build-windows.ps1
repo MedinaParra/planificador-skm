@@ -50,8 +50,8 @@ function Invoke-Logged([string]$Name, [string]$Program, [string[]]$Arguments) {
             $nextUpdate = [DateTime]::UtcNow.AddSeconds(60)
         }
     }
-    $stdout.GetAwaiter().GetResult()
-    $stderr.GetAwaiter().GetResult()
+    $null = $stdout.GetAwaiter().GetResult()
+    $null = $stderr.GetAwaiter().GetResult()
     $stdoutFile.Dispose()
     $stderrFile.Dispose()
     $text = [IO.File]::ReadAllText($stdoutPath) + "`n" + [IO.File]::ReadAllText($stderrPath)
