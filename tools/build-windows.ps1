@@ -10,7 +10,7 @@ foreach ($name in @('rust-version.log','cargo-version.log','fmt.log','build.log'
     if (Test-Path -LiteralPath (Join-Path $Evidence $name)) { throw "Previous evidence exists: $name; refusing to overwrite" }
 }
 $script:Commands = @()
-$env:CARGO_BUILD_JOBS = '1'
+$env:CARGO_BUILD_JOBS = '2'
 $env:CARGO_TARGET_DIR = Join-Path $Source 'target'
 $env:CARGO_PROFILE_RELEASE_DEBUG = '0'
 $env:CARGO_PROFILE_RELEASE_LTO = 'false'
@@ -28,8 +28,13 @@ function Invoke-Logged([string]$Name, [string]$Program, [string[]]$Arguments) {
     foreach ($arg in $Arguments) { [void]$psi.ArgumentList.Add($arg) }
     Write-Host "==> $Name"
     $process = [Diagnostics.Process]::Start($psi)
-    $stdout = $process.StandardOutput.ReadToEndAsync()
-    $stderr = $process.StandardError.ReadToEndAsync()
+    # Persist partial logs even if Actions cancels the step at its time limit.
+    $stdoutPath = Join-Path $Evidence "$Name.stdout.log"
+    $stderrPath = Join-Path $Evidence "$Name.stderr.log"
+    $stdoutFile = [IO.File]::Open($stdoutPath, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::ReadWrite)
+    $stderrFile = [IO.File]::Open($stderrPath, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::ReadWrite)
+    $stdout = $process.StandardOutput.BaseStream.CopyToAsync($stdoutFile)
+    $stderr = $process.StandardError.BaseStream.CopyToAsync($stderrFile)
     $nextUpdate = [DateTime]::UtcNow
     $stoppedForReserve = $false
     while (-not $process.WaitForExit(2000)) {
@@ -45,7 +50,11 @@ function Invoke-Logged([string]$Name, [string]$Program, [string[]]$Arguments) {
             $nextUpdate = [DateTime]::UtcNow.AddSeconds(60)
         }
     }
-    $text = $stdout.Result + "`n" + $stderr.Result
+    $stdout.GetAwaiter().GetResult()
+    $stderr.GetAwaiter().GetResult()
+    $stdoutFile.Dispose()
+    $stderrFile.Dispose()
+    $text = [IO.File]::ReadAllText($stdoutPath) + "`n" + [IO.File]::ReadAllText($stderrPath)
     [IO.File]::WriteAllText((Join-Path $Evidence "$Name.log"), $text)
     $text -split "`n" | Select-Object -Last 100 | ForEach-Object { Write-Host $_ }
     $exitCode = $process.ExitCode
@@ -112,7 +121,7 @@ $receipt = [ordered]@{
     cargo_version = $cargoVersion.Trim()
     log_sha256 = @{}
     features = @('portable', 'raytrace-cpu', 'bundled-render-library')
-    release_profile = @{debug=0; lto=$false; opt_level=3; jobs=1}
+    release_profile = @{debug=0; lto=$false; opt_level=3; jobs=2}
     build_command = @('cargo') + $buildArgs
     exe_sha256 = (Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant()
     exe_bytes = (Get-Item -LiteralPath $exe).Length
