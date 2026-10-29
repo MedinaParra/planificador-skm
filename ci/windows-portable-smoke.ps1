@@ -54,7 +54,10 @@ public static class PortableSmokeNative {
     [DllImport("user32.dll")] public static extern void mouse_event(uint flags, uint dx, uint dy, uint data, UIntPtr extra);
     public static void Click(int x, int y) {
         if (!SetCursorPos(x,y)) throw new InvalidOperationException("cannot position pointer");
-        mouse_event(2,0,0,0,UIntPtr.Zero); mouse_event(4,0,0,0,UIntPtr.Zero);
+        System.Threading.Thread.Sleep(150);
+        mouse_event(2,0,0,0,UIntPtr.Zero);
+        System.Threading.Thread.Sleep(100);
+        mouse_event(4,0,0,0,UIntPtr.Zero);
     }
 }
 '@
@@ -106,6 +109,15 @@ function Find-Uia($Root, [string] $Pattern) {
     return $null
 }
 function Click-Uia($Process, $Element) {
+    # Invoke the accessible action when implemented; no guessed coordinates.
+    # A click fallback holds the press across a rendered frame instead of emitting
+    # move/down/up in one instant, which egui can observe as a missed click.
+    $invoke = $null
+    if ($Element.TryGetCurrentPattern([System.Windows.Automation.InvokePattern]::Pattern, [ref]$invoke)) {
+        ([System.Windows.Automation.InvokePattern]$invoke).Invoke()
+        Start-Sleep -Milliseconds 300
+        return
+    }
     $r = $Element.Current.BoundingRectangle
     $window = New-Object PortableSmokeNative+RECT
     if (-not [PortableSmokeNative]::GetWindowRect($Process.MainWindowHandle, [ref]$window)) { throw 'Cannot bound UI click' }
@@ -157,6 +169,7 @@ function Open-Planner($Process, [string] $LogDir) {
         Uia-Names $root | Set-Content -LiteralPath (Join-Path $LogDir 'uia-menu.txt') -Encoding UTF8
         throw 'Lift study menu entry not exposed through UI Automation'
     }
+    Uia-Names $root | Set-Content -LiteralPath (Join-Path $LogDir 'uia-menu.txt') -Encoding UTF8
     Click-Uia $Process $item
     $deadline = [DateTime]::UtcNow.AddSeconds(15)
     do {
