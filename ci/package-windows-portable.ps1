@@ -18,7 +18,7 @@ if (Test-Path -LiteralPath $OutputDir) { throw 'OutputDir must be new; existing 
 $OutputDir=[IO.Path]::GetFullPath($OutputDir)
 $build=Get-Content -LiteralPath $BuildReceipt -Raw -Encoding UTF8 | ConvertFrom-Json
 $smoke=Get-Content -LiteralPath $SmokeResult -Raw -Encoding UTF8 | ConvertFrom-Json
-foreach ($gate in @('build_status','engine_lift_plan','ui_lift_plan','portable_tests')) {
+foreach ($gate in @('build_status','engine_lift_plan','ui_lift_plan','portable_tests','skm_shell_tests','skm_full_gpu_preview')) {
     if (-not $build.PSObject.Properties[$gate] -or $build.$gate -ne 'PASS') { throw "Required build receipt gate $gate is not PASS" }
 }
 foreach ($field in @('base_commit','delta_sha256','portable_patch_sha256','source_commit','toolchain','target','features','exe_sha256')) {
@@ -34,6 +34,8 @@ foreach ($name in @('normal','safe-mode','moved-unicode','data-file-collision'))
     $match=@($smoke.cases | Where-Object { $_.name -eq $name -and $_.status -eq 'PASS' })
     if ($match.Count -ne 1) { throw "Missing or duplicate passing smoke case $name" }
 }
+if ($build.skm_shell_test_count -ne 5 -or $build.skm_preview_test_count -ne 1) { throw 'SKM coverage missing' }
+if (-not $build.skm_tree_sha256 -or -not $build.skm_patch_sha256) { throw 'SKM source provenance missing' }
 if ($smoke.rt750_status -ne 'NOT_VALIDATED') { throw 'Safety status missing' }
 
 # Parse the real PE, checking bounds before every offset read.
@@ -81,7 +83,7 @@ $signature=Get-AuthenticodeSignature -LiteralPath $Exe
 if ($signature.Status -ne 'NotSigned') { throw "Unexpected signing state: $($signature.Status); this pipeline does not sign" }
 
 New-Item -ItemType Directory -Path $OutputDir | Out-Null
-$name='SolidCraft-Planificador-05C-windows-x64-portable'
+$name='SKM-Planificador-Candidata-windows-x64-portable'
 $stage=Join-Path $OutputDir $name
 New-Item -ItemType Directory -Path $stage | Out-Null
 Copy-Item -LiteralPath $Exe -Destination (Join-Path $stage 'solidcraft.exe')
@@ -90,7 +92,7 @@ foreach ($f in @('LICENSE-MIT','LICENSE-APACHE','NOTICE','THIRD-PARTY-LICENSES.t
 }
 # Preserve attribution rows for planner additions not yet folded into the upstream table.
 $pending=Join-Path $SourceRoot 'attribution/pending'
-foreach ($f in @('lift-plan.md','lift-package-inspect.md','lift-step-units-inspect.md','portable-policy.md')) {
+foreach ($f in @('lift-plan.md','lift-package-inspect.md','lift-step-units-inspect.md','portable-policy.md','skm-workspace.md')) {
     $p=Join-Path $pending $f
     if (-not (Test-Path -LiteralPath $p -PathType Leaf)) { throw "Planner attribution missing: $f" }
     Copy-Item -LiteralPath $p -Destination (Join-Path $stage ('ATTRIBUTION-'+$f))
@@ -98,10 +100,15 @@ foreach ($f in @('lift-plan.md','lift-package-inspect.md','lift-step-units-inspe
 Copy-Item -LiteralPath $BuildReceipt -Destination (Join-Path $stage 'BUILD-RECEIPT.json')
 Copy-Item -LiteralPath $SmokeResult -Destination (Join-Path $stage 'GUI-SMOKE-RESULT.json')
 $readme=@'
-SolidCraft - Planificador de izaje 05C / Windows x64 portable experimental
+SKM - Planificador de izaje / Candidata Windows x64 portable experimental
+Motor SolidCraft conservado. Revision visual humana pendiente antes de entrega aprobada.
 
 NO OPERATIVO / NOT_VALIDATED. RT750 NOT_VALIDATED.
 No datos OEM validados, capacidad de izaje ni aprobacion operacional.
+Grua y aparejos GENERICOS referenciales; no representan una RT750 OEM.
+Sin masa/WLL, calculo de capacidad, suelo, viento o colisiones.
+Pasos guardados son posiciones geometricas, no trayectoria validada.
+Informe de parametros copiable; no informe tecnico PDF aprobado.
 La geometria CAD no certifica estabilidad, resistencia, suelo o despejes.
 
 Extraiga todo el ZIP a una carpeta escribible y abra solidcraft.exe.
@@ -154,3 +161,4 @@ try {
 $receipt=@{ schema=1; status='PASS'; filename=[IO.Path]::GetFileName($zip); zip_sha256=(Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant(); size_bytes=(Get-Item -LiteralPath $zip).Length; exe_sha256=$exeSha; file_count=$expected.Count; zip_inventory_and_hashes='PASS'; base_commit=$build.base_commit; source_commit=$build.source_commit; delta_sha256=$build.delta_sha256; portable_patch_sha256=$build.portable_patch_sha256; rt750_status='NOT_VALIDATED'; created_utc=[DateTime]::UtcNow.ToString('o'); signing='NOT_SIGNED'; installation='NONE'; cli_or_mcp_included=$false }
 $receipt | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $OutputDir 'package-result.json') -Encoding UTF8
 Write-Output "PASS: $zip ($($receipt.size_bytes) bytes), SHA256 $($receipt.zip_sha256)"
+
