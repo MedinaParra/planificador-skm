@@ -2,6 +2,9 @@ name: SKM candidate existing Windows EXE QA
 
 on:
   workflow_dispatch:
+  push:
+    branches: [skm-workspace-candidate-20261030]
+    paths: [.github/workflows/windows-portable.yml]
 
 permissions:
   contents: read
