@@ -1,0 +1,1660 @@
+--- a/apps/solidcraft/src/main.rs
++++ b/apps/solidcraft/src/main.rs
+@@ -623,7 +623,7 @@
+     let icon =
+         egui::IconData { rgba: app_icon::rgba(64).map_err(|e| eframe::Error::AppCreation(std::io::Error::other(e).into()))?, width: 64, height: 64 };
+     Ok(egui::ViewportBuilder::default()
+-        .with_title("SolidCraft")
++        .with_title("SKM | Planificador de izaje")
+         .with_icon(icon)
+         .with_inner_size([1600.0, 1000.0])
+         .with_min_inner_size([960.0, 600.0])
+@@ -793,7 +793,7 @@
+     let starting = settings.clone();
+     mark("run_native");
+     let result = eframe::run_native(
+-        "SolidCraft",
++        "SKM | Planificador de izaje",
+         options,
+         Box::new(move |cc| {
+             created_in_app.store(true, std::sync::atomic::Ordering::SeqCst);
+@@ -902,9 +902,8 @@
+             }
+             // No design given: the start page (not when driven over the control channel, whose
+             // clients expect the design view; `ui.home` shows it there).
+-            if files.is_empty() && !sample && control_port.is_none() {
+-                let rev = app.session.revision;
+-                app.home.show(rev);
++            if !sample && control_port.is_none() {
++                app.enable_skm_workspace();
+             }
+             // Autosave, and offer what crashed sessions left behind.
+             if let Some(dir) = solidcraft_engine::recovery::default_dir() {
+--- /dev/null
++++ b/assets/locales/pending/skm-workspace.json
+@@ -0,0 +1,160 @@
++{
++  "en": {
++    "skm.workspace.text_000": "Site",
++    "skm.workspace.text_001": "Crane",
++    "skm.workspace.text_002": "Load and rigging",
++    "skm.workspace.text_003": "Sequence",
++    "skm.workspace.text_004": "Checks",
++    "skm.workspace.text_005": "Report",
++    "skm.workspace.text_006": "01  Hook block",
++    "skm.workspace.text_007": "02  Upper slings",
++    "skm.workspace.text_008": "03  Spreader",
++    "skm.workspace.text_009": "04  Lower slings",
++    "skm.workspace.text_010": "05  Load",
++    "skm.workspace.text_011": "Boom length · m",
++    "skm.workspace.text_012": "Boom angle · °",
++    "skm.workspace.text_013": "Slew · °",
++    "skm.workspace.text_014": "Hook height · m",
++    "skm.workspace.text_015": "Spreader width · m",
++    "skm.workspace.text_016": "Upper vertical drop · m",
++    "skm.workspace.text_017": "Lower vertical drop · m",
++    "skm.workspace.text_018": "Load length · m",
++    "skm.workspace.text_019": "Load width · m",
++    "skm.workspace.text_020": "Load height · m",
++    "skm.workspace.text_021": "Geometry requires finite values.",
++    "skm.workspace.text_022": "SKM  /  LIFT PLANNER",
++    "skm.workspace.text_023": "Open",
++    "skm.workspace.text_024": "Save",
++    "skm.workspace.text_025": "Fit scene",
++    "skm.workspace.text_026": "Isometric view",
++    "skm.workspace.text_027": "Top view",
++    "skm.workspace.text_028": "Unapplied geometric changes",
++    "skm.workspace.text_029": "Reference scene · m / degrees · native geometry engine",
++    "skm.workspace.text_030": "NOT OPERATIONAL / NOT_VALIDATED",
++    "skm.workspace.text_031": "Generic crane, not RT750. No OEM charts, capacity, stability or lifting approval.",
++    "skm.workspace.text_032": "Load assembly",
++    "skm.workspace.text_033": "Lift scene",
++    "skm.workspace.text_034": "REFERENCE GEOMETRY",
++    "skm.workspace.text_035": "Generic mobile crane",
++    "skm.workspace.text_036": "Carrier · outriggers · boom",
++    "skm.workspace.text_037": "        ↓ geometric connection",
++    "skm.workspace.text_038": "Select a component to edit its geometry on the right. Lines do not certify rigging or capacity.",
++    "skm.workspace.text_039": "Crane visible at startup",
++    "skm.workspace.text_040": "Original demonstration scene. It does not represent a real site or OEM equipment.",
++    "skm.workspace.text_041": "Z-up coordinate system · metres",
++    "skm.workspace.text_042": "Outriggers shown geometrically",
++    "skm.workspace.text_043": "Ground: not characterized",
++    "skm.workspace.text_044": "Obstacles: not incorporated",
++    "skm.workspace.text_045": "This document has no SKM scene.",
++    "skm.workspace.text_046": "Its geometry will not be replaced automatically.",
++    "skm.workspace.text_047": "Geometric configuration",
++    "skm.workspace.text_048": "Generic crane / no load chart",
++    "skm.workspace.text_049": "This is not a certified loaded radius.",
++    "skm.workspace.text_050": "Load",
++    "skm.workspace.text_051": "Vertical drop, not actual sling length or strength.",
++    "skm.workspace.text_052": "Schematic spreader, not a certified accessory.",
++    "skm.workspace.text_053": "Bounding volume. No mass or centre of gravity is inferred.",
++    "skm.workspace.text_054": "Geometric steps",
++    "skm.workspace.text_055": "They capture configurations, not a continuous path or approved lift.",
++    "skm.workspace.text_056": "Capture configuration",
++    "skm.workspace.text_057": "NOT VALIDATED",
++    "skm.workspace.text_058": "OEM capacity",
++    "skm.workspace.text_059": "Mass and centre of gravity",
++    "skm.workspace.text_060": "Rigging strength",
++    "skm.workspace.text_061": "Stability and supports",
++    "skm.workspace.text_062": "Ground and wind",
++    "skm.workspace.text_063": "Collisions and trajectory",
++    "skm.workspace.text_064": "NOT AVAILABLE · requires data and independent verification",
++    "skm.workspace.text_065": "Geometric summary",
++    "skm.workspace.text_066": "Not an approval report or operational plan.",
++    "skm.workspace.text_067": "Copy summary",
++    "skm.workspace.text_068": "Save project",
++    "skm.workspace.text_069": "SolidCraft engine, MIT / Apache-2.0. Original SKM workspace. No proprietary third-party images or models.",
++    "skm.workspace.text_070": "Apply geometry",
++    "skm.workspace.text_071": "Discard changes",
++    "skm.workspace.radius": "Geometric radius",
++    "skm.workspace.apply_step": "Apply",
++    "skm.workspace.report_title": "SKM — GEOMETRIC STUDY\nNOT OPERATIONAL / NOT_VALIDATED\nGeneric crane, not OEM / not RT750",
++    "skm.workspace.report_limit": "No capacity, verified masses, stability or validated trajectory.",
++    "skm.workspace.stale_geometry": "Scene missing or modified: parameters do not describe current geometry. Configuration editing is blocked."
++  },
++  "es": {
++    "skm.workspace.text_000": "Obra",
++    "skm.workspace.text_001": "Grúa",
++    "skm.workspace.text_002": "Carga y aparejos",
++    "skm.workspace.text_003": "Maniobra",
++    "skm.workspace.text_004": "Verificaciones",
++    "skm.workspace.text_005": "Informe",
++    "skm.workspace.text_006": "01  Gancho",
++    "skm.workspace.text_007": "02  Eslingas superiores",
++    "skm.workspace.text_008": "03  Separador",
++    "skm.workspace.text_009": "04  Eslingas inferiores",
++    "skm.workspace.text_010": "05  Carga",
++    "skm.workspace.text_011": "Longitud de pluma · m",
++    "skm.workspace.text_012": "Ángulo de pluma · °",
++    "skm.workspace.text_013": "Orientación · °",
++    "skm.workspace.text_014": "Altura del gancho · m",
++    "skm.workspace.text_015": "Ancho del separador · m",
++    "skm.workspace.text_016": "Caída vertical superior · m",
++    "skm.workspace.text_017": "Caída vertical inferior · m",
++    "skm.workspace.text_018": "Largo de carga · m",
++    "skm.workspace.text_019": "Ancho de carga · m",
++    "skm.workspace.text_020": "Alto de carga · m",
++    "skm.workspace.text_021": "La geometría requiere valores finitos.",
++    "skm.workspace.text_022": "SKM  /  PLANIFICADOR DE IZAJE",
++    "skm.workspace.text_023": "Abrir",
++    "skm.workspace.text_024": "Guardar",
++    "skm.workspace.text_025": "Encuadrar escena",
++    "skm.workspace.text_026": "Vista isométrica",
++    "skm.workspace.text_027": "Vista superior",
++    "skm.workspace.text_028": "Cambios geométricos sin aplicar",
++    "skm.workspace.text_029": "Escena referencial · unidades m / grados · motor geométrico nativo",
++    "skm.workspace.text_030": "NO OPERATIVO / NOT_VALIDATED",
++    "skm.workspace.text_031": "Grúa genérica, no RT750. Sin tablas OEM, capacidad, estabilidad ni aprobación de izaje.",
++    "skm.workspace.text_032": "Conjunto de carga",
++    "skm.workspace.text_033": "Escena de izaje",
++    "skm.workspace.text_034": "GEOMETRÍA REFERENCIAL",
++    "skm.workspace.text_035": "Grúa móvil genérica",
++    "skm.workspace.text_036": "Chasis · estabilizadores · pluma",
++    "skm.workspace.text_037": "        ↓ conexión geométrica",
++    "skm.workspace.text_038": "Selecciona un componente para editar su geometría a la derecha. Las líneas no acreditan aparejos ni capacidad.",
++    "skm.workspace.text_039": "Grúa visible desde el arranque",
++    "skm.workspace.text_040": "Escena original de demostración. No representa un emplazamiento real ni un equipo OEM.",
++    "skm.workspace.text_041": "Sistema Z vertical · metros",
++    "skm.workspace.text_042": "Estabilizadores representados geométricamente",
++    "skm.workspace.text_043": "Terreno: no caracterizado",
++    "skm.workspace.text_044": "Obstáculos: no incorporados",
++    "skm.workspace.text_045": "Este documento no contiene una escena SKM.",
++    "skm.workspace.text_046": "No se reemplazará su geometría automáticamente.",
++    "skm.workspace.text_047": "Configuración geométrica",
++    "skm.workspace.text_048": "Grúa genérica / sin curva de carga",
++    "skm.workspace.text_049": "El radio no es radio certificado bajo carga.",
++    "skm.workspace.text_050": "Carga",
++    "skm.workspace.text_051": "Caída vertical, no longitud real ni resistencia de eslinga.",
++    "skm.workspace.text_052": "Separador esquemático, no accesorio certificado.",
++    "skm.workspace.text_053": "Volumen envolvente. No se infiere masa ni centro de gravedad.",
++    "skm.workspace.text_054": "Pasos geométricos",
++    "skm.workspace.text_055": "Capturan configuraciones, no trayectoria continua ni maniobra aprobada.",
++    "skm.workspace.text_056": "Capturar configuración",
++    "skm.workspace.text_057": "NO VALIDADO",
++    "skm.workspace.text_058": "Capacidad OEM",
++    "skm.workspace.text_059": "Masa y centro de gravedad",
++    "skm.workspace.text_060": "Resistencia de aparejos",
++    "skm.workspace.text_061": "Estabilidad y apoyos",
++    "skm.workspace.text_062": "Terreno y viento",
++    "skm.workspace.text_063": "Colisiones y trayectoria",
++    "skm.workspace.text_064": "NO DISPONIBLE · requiere datos y verificación independiente",
++    "skm.workspace.text_065": "Resumen geométrico",
++    "skm.workspace.text_066": "No es informe de aprobación ni plan operativo.",
++    "skm.workspace.text_067": "Copiar resumen",
++    "skm.workspace.text_068": "Guardar proyecto",
++    "skm.workspace.text_069": "Motor SolidCraft, MIT / Apache-2.0. Entorno SKM original. Sin imágenes ni modelos propietarios de terceros.",
++    "skm.workspace.text_070": "Aplicar geometría",
++    "skm.workspace.text_071": "Descartar cambios",
++    "skm.workspace.radius": "Radio geométrico",
++    "skm.workspace.apply_step": "Aplicar",
++    "skm.workspace.report_title": "SKM — ESTUDIO GEOMÉTRICO\nNO OPERATIVO / NOT_VALIDATED\nGrúa genérica, no OEM / no RT750",
++    "skm.workspace.report_limit": "Sin capacidad, masas verificadas, estabilidad o trayectoria validada.",
++    "skm.workspace.stale_geometry": "Escena ausente o modificada: los parámetros no acreditan la geometría actual. Edición de configuración bloqueada."
++  }
++}
+--- /dev/null
++++ b/attribution/pending/skm-workspace.md
+@@ -0,0 +1 @@
++| `assets/locales/pending/skm-workspace.json` | SKM project contributors | Original bilingual text for the SKM geometric lifting-study workspace. No CRANIMAX text or artwork included. | MIT OR Apache-2.0 |
+--- a/crates/engine/src/cmd/mod.rs
++++ b/crates/engine/src/cmd/mod.rs
+@@ -91,6 +91,7 @@
+ mod sketch_inspect;
+ mod sketch_modify;
+ mod sketch_project;
++mod skm_scene;
+ mod surface;
+ mod surface_analysis;
+ mod surface_boundary;
+@@ -312,6 +313,7 @@
+     v.extend(material_properties::COMMANDS.iter());
+     v.extend(libraries::COMMANDS.iter());
+     v.extend(lift::COMMANDS.iter());
++    v.extend(skm_scene::COMMANDS.iter());
+     v.extend(lift_capacity::COMMANDS.iter());
+     v.extend(lift_measure::COMMANDS.iter());
+     v.extend(lift_package::COMMANDS.iter());
+--- /dev/null
++++ b/crates/engine/src/cmd/skm_scene.rs
+@@ -0,0 +1,408 @@
++//! Original procedural lifting reference, not an OEM crane or operational assessment.
++//! Own ordinary primitive features only: user geometry is never replaced by configuration.
++use std::collections::{BTreeMap, BTreeSet};
++use std::sync::Arc;
++
++use serde::{Deserialize, Serialize};
++use serde_json::{Value, json};
++use solidcraft_doc::{Document, FeatureKind, Operation, appearance::Look};
++use solidcraft_geom::Vec3;
++
++use super::CommandSpec;
++use crate::{Result, Session, params::bad};
++
++const KEY: &str = "com.skm.reference_scene";
++const CMD: &str = "skm.scene";
++
++pub static COMMANDS: &[CommandSpec] = &[
++    CommandSpec::new("skm.scene.create", "Create reference lifting scene", create)
++        .params("Empty design only. Optional bounded geometric parameters in metres/degrees. Original generic geometry, NOT_VALIDATED, no OEM capacity."),
++    CommandSpec::new("skm.scene.configure", "Configure reference lifting geometry", configure)
++        .params("Partial parameters: boom_length_m, boom_angle_deg, slew_deg, hook_height_m, load_length_m, load_width_m, load_height_m, spreader_width_m, upper_sling_drop_m, lower_sling_drop_m. No capacity/rigging strength calculation."),
++    CommandSpec::new("skm.scene.inspect", "Inspect reference lifting scene", inspect).noundo().doc_only()
++        .params("Read-only parameters, geometric coordinates, saved steps and NOT_VALIDATED status."),
++    CommandSpec::new("skm.scene.capture", "Capture geometric reference step", capture).doc_only()
++        .params("name: unique 1..80 UTF-8 bytes; at most 32 steps. Parameters only, not an approved maneuver."),
++    CommandSpec::new("skm.scene.apply", "Apply geometric reference step", apply)
++        .params("name: saved geometric reference step. Preserves unrelated user geometry; refuses edited managed primitives."),
++];
++
++#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
++#[serde(deny_unknown_fields)]
++struct Parameters {
++    boom_length_m: f64,
++    boom_angle_deg: f64,
++    slew_deg: f64,
++    hook_height_m: f64,
++    load_length_m: f64,
++    load_width_m: f64,
++    load_height_m: f64,
++    spreader_width_m: f64,
++    upper_sling_drop_m: f64,
++    lower_sling_drop_m: f64,
++}
++impl Default for Parameters {
++    fn default() -> Self {
++        Self {
++            boom_length_m: 16.0,
++            boom_angle_deg: 55.0,
++            slew_deg: 25.0,
++            hook_height_m: 7.0,
++            load_length_m: 3.0,
++            load_width_m: 2.0,
++            load_height_m: 1.6,
++            spreader_width_m: 3.0,
++            upper_sling_drop_m: 1.0,
++            lower_sling_drop_m: 1.0,
++        }
++    }
++}
++impl Parameters {
++    fn tip(&self) -> Vec3 {
++        let a = self.boom_angle_deg.to_radians();
++        let s = self.slew_deg.to_radians();
++        Vec3::new(self.boom_length_m * a.cos() * s.cos(), self.boom_length_m * a.cos() * s.sin(), 2.2 + self.boom_length_m * a.sin())
++    }
++    fn validate(&self) -> Result<()> {
++        for (name, value, min, max) in [
++            ("boom_length_m", self.boom_length_m, 8.0, 30.0),
++            ("boom_angle_deg", self.boom_angle_deg, 15.0, 80.0),
++            ("slew_deg", self.slew_deg, -180.0, 180.0),
++            ("hook_height_m", self.hook_height_m, 2.0, 32.0),
++            ("load_length_m", self.load_length_m, 0.5, 6.0),
++            ("load_width_m", self.load_width_m, 0.5, 4.0),
++            ("load_height_m", self.load_height_m, 0.5, 4.0),
++            ("spreader_width_m", self.spreader_width_m, 0.5, 6.0),
++            ("upper_sling_drop_m", self.upper_sling_drop_m, 0.5, 3.0),
++            ("lower_sling_drop_m", self.lower_sling_drop_m, 0.5, 3.0),
++        ] {
++            if !value.is_finite() || value < min || value > max {
++                return Err(bad(CMD, format!("{name} must be finite in {min}..{max}")));
++            }
++        }
++        if self.hook_height_m > self.tip().z - 1.0 {
++            return Err(bad(CMD, "hook must remain at least 1 m below boom tip"));
++        }
++        if self.hook_height_m - self.upper_sling_drop_m - self.lower_sling_drop_m - self.load_height_m < 0.5 {
++            return Err(bad(CMD, "reference load must remain at least 0.5 m above ground; adjust hook/rigging/dimensions"));
++        }
++        Ok(())
++    }
++    fn merge(&self, patch: &Value) -> Result<Self> {
++        let fields = patch.as_object().ok_or_else(|| bad(CMD, "parameters must be an object"))?;
++        let mut value = serde_json::to_value(self).map_err(|e| bad(CMD, e.to_string()))?;
++        let target = value.as_object_mut().ok_or_else(|| bad(CMD, "invalid reference parameters"))?;
++        for (key, v) in fields {
++            if !target.contains_key(key) {
++                return Err(bad(CMD, format!("unknown parameter {key}")));
++            }
++            target.insert(key.clone(), v.clone());
++        }
++        let p: Self = serde_json::from_value(value).map_err(|e| bad(CMD, e.to_string()))?;
++        p.validate()?;
++        Ok(p)
++    }
++}
++#[derive(Clone, Debug, Serialize, Deserialize)]
++#[serde(deny_unknown_fields)]
++struct Step {
++    name: String,
++    parameters: Parameters,
++}
++#[derive(Clone, Debug, Serialize, Deserialize)]
++#[serde(deny_unknown_fields)]
++struct Scene {
++    schema: u32,
++    parameters: Parameters,
++    features: Vec<u64>,
++    steps: Vec<Step>,
++}
++struct Part {
++    name: String,
++    kind: FeatureKind,
++    color: [u8; 3],
++}
++fn point(v: Vec3) -> [solidcraft_doc::expr::Expr; 3] {
++    [v.x, v.y, v.z].map(|x| format!("{} mm", x * 1000.0).into())
++}
++fn mm(v: f64) -> solidcraft_doc::expr::Expr {
++    format!("{} mm", v * 1000.0).into()
++}
++fn box_part(parts: &mut Vec<Part>, name: &str, center: Vec3, size: Vec3, color: [u8; 3]) {
++    parts.push(Part {
++        name: format!("SKM {name}"),
++        color,
++        kind: FeatureKind::Box {
++            corner: point(center - size * 0.5),
++            length: mm(size.x),
++            width: mm(size.y),
++            height: mm(size.z),
++            operation: Operation::NewBody,
++        },
++    });
++}
++fn rod(parts: &mut Vec<Part>, name: &str, from: Vec3, to: Vec3, radius: f64, color: [u8; 3]) {
++    let delta = to - from;
++    let height = delta.len();
++    let axis = delta.normalized().unwrap_or(Vec3::Z);
++    parts.push(Part {
++        name: format!("SKM {name}"),
++        color,
++        kind: FeatureKind::Cylinder { base: point(from), axis: axis.into(), radius: mm(radius), height: mm(height), operation: Operation::NewBody },
++    });
++}
++fn recipe(p: &Parameters) -> Vec<Part> {
++    let mut parts = Vec::new();
++    let yellow = [235, 176, 43];
++    let dark = [45, 55, 67];
++    let steel = [177, 190, 205];
++    let cyan = [38, 163, 181];
++    box_part(&mut parts, "Chasis referencial", Vec3::new(0.0, 0.0, 1.0), Vec3::new(6.5, 2.5, 0.65), yellow);
++    box_part(&mut parts, "Cabina", Vec3::new(-2.2, 0.0, 1.9), Vec3::new(1.7, 2.3, 1.3), yellow);
++    box_part(&mut parts, "Ventana cabina", Vec3::new(-3.06, 0.0, 2.1), Vec3::new(0.04, 1.95, 0.65), [73, 136, 164]);
++    box_part(&mut parts, "Torreta", Vec3::new(0.0, 0.0, 1.7), Vec3::new(2.0, 2.0, 0.75), yellow);
++    for (i, x) in [-2.2, 2.2].into_iter().enumerate() {
++        for (j, side) in [-1.0, 1.0].into_iter().enumerate() {
++            rod(&mut parts, &format!("Rueda {i}-{j}"), Vec3::new(x, side * 1.1, 0.6), Vec3::new(x, side * 1.5, 0.6), 0.6, dark);
++            box_part(&mut parts, &format!("Estabilizador {i}-{j}"), Vec3::new(x, side * 2.2, 0.85), Vec3::new(0.3, 2.4, 0.3), yellow);
++            rod(&mut parts, &format!("Pata {i}-{j}"), Vec3::new(x, side * 3.3, 0.12), Vec3::new(x, side * 3.3, 0.85), 0.16, steel);
++            box_part(&mut parts, &format!("Placa apoyo {i}-{j}"), Vec3::new(x, side * 3.3, 0.08), Vec3::new(0.85, 0.85, 0.16), dark);
++        }
++    }
++    let pivot = Vec3::new(0.0, 0.0, 2.2);
++    let tip = p.tip();
++    let direction = tip - pivot;
++    // Three overlapping telescopic reference sections. No OEM kinematics are claimed.
++    for (i, radius) in [0.40, 0.31, 0.23].into_iter().enumerate() {
++        let start = i as f64 / 3.0;
++        let end = ((i + 1) as f64 / 3.0 + 0.04).min(1.0);
++        rod(&mut parts, &format!("Pluma tramo {}", i + 1), pivot + direction * start, pivot + direction * end, radius, yellow);
++    }
++    let hook = Vec3::new(tip.x, tip.y, p.hook_height_m);
++    rod(&mut parts, "Cable izaje", tip, hook + Vec3::new(0.0, 0.0, 0.35), 0.035, steel);
++    box_part(&mut parts, "Bloque gancho", hook + Vec3::new(0.0, 0.0, 0.15), Vec3::new(0.5, 0.3, 0.4), dark);
++    let spread_z = hook.z - p.upper_sling_drop_m;
++    let left = Vec3::new(hook.x, hook.y - p.spreader_width_m / 2.0, spread_z);
++    let right = Vec3::new(hook.x, hook.y + p.spreader_width_m / 2.0, spread_z);
++    rod(&mut parts, "Eslinga superior A", hook, left, 0.045, [218, 104, 56]);
++    rod(&mut parts, "Eslinga superior B", hook, right, 0.045, [218, 104, 56]);
++    box_part(&mut parts, "Separador", Vec3::new(hook.x, hook.y, spread_z), Vec3::new(0.28, p.spreader_width_m + 0.3, 0.25), yellow);
++    let top = spread_z - p.lower_sling_drop_m;
++    for (i, x) in [-1.0, 1.0].into_iter().enumerate() {
++        for (j, y) in [-1.0, 1.0].into_iter().enumerate() {
++            rod(
++                &mut parts,
++                &format!("Eslinga inferior {i}-{j}"),
++                if y < 0.0 { left } else { right },
++                Vec3::new(hook.x + x * p.load_length_m / 2.0, hook.y + y * p.load_width_m / 2.0, top),
++                0.04,
++                [218, 104, 56],
++            );
++        }
++    }
++    box_part(
++        &mut parts,
++        "Carga referencial",
++        Vec3::new(hook.x, hook.y, top - p.load_height_m / 2.0),
++        Vec3::new(p.load_length_m, p.load_width_m, p.load_height_m),
++        cyan,
++    );
++    parts
++}
++fn settled(s: &Session) -> Result<()> {
++    if s.read_only || s.active_sketch.is_some() || !s.pending_moves.is_empty() || s.doc.marker.is_some() {
++        return Err(bad(CMD, "finish edits/pending moves; reference scene requires writable design at timeline end"));
++    }
++    Ok(())
++}
++fn read(s: &Session) -> Result<Option<Scene>> {
++    let Some(value) = s.doc.metadata.get(KEY) else { return Ok(None) };
++    let scene: Scene = serde_json::from_value(value.clone()).map_err(|e| bad(CMD, e.to_string()))?;
++    if scene.schema != 1 || scene.steps.len() > 32 || scene.features.len() > 64 {
++        return Err(bad(CMD, "unsupported or oversized reference scene"));
++    }
++    scene.parameters.validate()?;
++    let mut names = BTreeSet::new();
++    for step in &scene.steps {
++        validate_name(&step.name)?;
++        step.parameters.validate()?;
++        if !names.insert(&step.name) {
++            return Err(bad(CMD, "duplicate reference step"));
++        }
++    }
++    Ok(Some(scene))
++}
++fn store(doc: &mut Document, scene: &Scene) -> Result<()> {
++    doc.metadata.set(KEY, serde_json::to_value(scene).map_err(|e| bad(CMD, e.to_string()))?)?;
++    Ok(())
++}
++fn describe(scene: &Scene) -> Value {
++    let tip = scene.parameters.tip();
++    json!({"exists":true,"parameters":scene.parameters,"steps":scene.steps,"validation_status":"NOT_VALIDATED",
++        "operational_approval":false,"reference_only":true,"oem_model":null,"capacity":null,
++        "load_mass_kg":null,"rigging_wll_kg":null,"mass_source":"NOT_SUPPLIED","managed_geometry_matches_parameters":true,
++        "boom_tip_m":[tip.x,tip.y,tip.z],"hook_position_m":[tip.x,tip.y,scene.parameters.hook_height_m],
++        "working_radius_m":tip.x.hypot(tip.y),"managed_feature_count":scene.features.len(),
++        "limits":"Geometry only: no OEM articulation, capacity, sling strength, stability, wind, ground bearing or swept-path approval."})
++}
++fn inspect(s: &mut Session, _: &Value) -> Result<Value> {
++    let Some(scene) = read(s)? else {
++        return Ok(
++            json!({"exists":false,"parameters":Parameters::default(),"steps":[],"validation_status":"NOT_VALIDATED","operational_approval":false}),
++        );
++    };
++    let mut value = describe(&scene);
++    let matches = validate_owned(s, &scene).is_ok();
++    value["managed_geometry_matches_parameters"] = json!(matches);
++    if !matches {
++        value["geometry_warning"] =
++            json!("Managed geometry is edited, dependent, rolled back or has pending moves; stored parameters cannot certify current geometry.");
++        for field in ["boom_tip_m", "hook_position_m", "working_radius_m"] {
++            value[field] = Value::Null;
++        }
++    }
++    Ok(value)
++}
++fn create(s: &mut Session, p: &Value) -> Result<Value> {
++    settled(s)?;
++    if read(s)?.is_some() || !s.doc.features.is_empty() || !s.doc.components.is_empty() || !s.doc.occurrences.is_empty() {
++        return Err(bad(CMD, "create only in a new empty design; existing user geometry is preserved"));
++    }
++    let parameters = Parameters::default().merge(p)?;
++    let mut doc = (*s.doc).clone();
++    let mut features = Vec::new();
++    for part in recipe(&parameters) {
++        let id = doc.add_feature(part.kind, Some(&part.name))?;
++        let feature = doc.feature_mut(id).ok_or_else(|| bad(CMD, "new primitive missing"))?;
++        feature.body_names = vec![part.name.clone()];
++        doc.appearances.bodies.insert(part.name, Look::custom(part.color, 1.0));
++        features.push(id);
++    }
++    let scene = Scene { schema: 1, parameters, features, steps: Vec::new() };
++    store(&mut doc, &scene)?;
++    s.doc = Arc::new(doc);
++    Ok(describe(&scene))
++}
++fn validate_owned(s: &Session, scene: &Scene) -> Result<()> {
++    if s.doc.marker.is_some() || !s.pending_moves.is_empty() {
++        return Err(bad(CMD, "reference geometry requires the timeline end and no pending component moves"));
++    }
++    let old = recipe(&scene.parameters);
++    let unique: BTreeSet<_> = scene.features.iter().copied().collect();
++    if old.len() != scene.features.len() || unique.len() != old.len() {
++        return Err(bad(CMD, "reference primitive inventory differs; no geometry changed"));
++    }
++    // Validate every owned primitive before touching any. Unrelated features are kept verbatim.
++    for (id, part) in scene.features.iter().zip(&old) {
++        let f = s.doc.feature(*id).ok_or_else(|| bad(CMD, "reference primitive missing; no geometry changed"))?;
++        if f.kind != part.kind || f.name != part.name || f.body_names != [part.name.clone()] || f.component != 0 || f.suppressed {
++            return Err(bad(CMD, "reference primitive was edited outside this configurator; no geometry changed"));
++        }
++    }
++    // A later operation can move/remove/cut a body without editing its original
++    // primitive. Walk the engine's typed references, rather than searching JSON text.
++    // Refuse the first dependent operation: this also closes every transitive chain.
++    let body_remap: BTreeMap<_, _> = old.iter().map(|part| (part.name.clone(), format!("__skm_dependency_probe__{}", part.name))).collect();
++    for f in &s.doc.features {
++        if unique.contains(&f.id) || f.suppressed {
++            continue;
++        }
++        let mut probe = f.kind.clone();
++        probe.remap_bodies(&body_remap);
++        let references_owned = probe != f.kind || old.iter().any(|part| f.kind.names_feature(&part.name));
++        let shadows_owned = f.body_names.iter().any(|name| body_remap.contains_key(name));
++        if references_owned || shadows_owned || (f.component == 0 && unscoped_geometry_operation(&f.kind)) {
++            return Err(bad(CMD, "downstream geometry may alter the reference scene; no geometry changed"));
++        }
++    }
++    Ok(())
++}
++
++// Empty boolean targets mean all bodies. Unscoped face/edge picks likewise cannot
++// certify the managed geometry from its primitive recipe. Explicit unrelated bodies
++// and independent NewBody primitives remain valid; no user feature is removed.
++fn unscoped_geometry_operation(kind: &FeatureKind) -> bool {
++    match kind {
++        FeatureKind::Box { operation, .. }
++        | FeatureKind::Cylinder { operation, .. }
++        | FeatureKind::Sphere { operation, .. }
++        | FeatureKind::Torus { operation, .. }
++        | FeatureKind::BoundaryFill { operation, .. } => *operation != Operation::NewBody,
++        FeatureKind::Extrude { operation, targets, .. }
++        | FeatureKind::Revolve { operation, targets, .. }
++        | FeatureKind::Loft { operation, targets, .. }
++        | FeatureKind::Sweep { operation, targets, .. }
++        | FeatureKind::Pipe { operation, targets, .. }
++        | FeatureKind::Coil { operation, targets, .. }
++        | FeatureKind::Thicken { operation, targets, .. } => *operation != Operation::NewBody && targets.is_empty(),
++        FeatureKind::Fillet { body, .. }
++        | FeatureKind::Chamfer { body, .. }
++        | FeatureKind::SheetFlange { body, .. }
++        | FeatureKind::SheetHem { body, .. }
++        | FeatureKind::SheetPerforate { body, .. }
++        | FeatureKind::SheetFold { body, .. }
++        | FeatureKind::SheetPath { body, .. }
++        | FeatureKind::SheetUnfold { body, .. }
++        | FeatureKind::Lip { body, .. } => body.is_none(),
++        FeatureKind::Emboss { targets, .. } => targets.is_empty(),
++        FeatureKind::Rib { .. } => true,
++        _ => !kind.face_points().is_empty() && kind.face_body().is_none(),
++    }
++}
++fn replace_parameters(s: &mut Session, mut scene: Scene, parameters: Parameters) -> Result<Value> {
++    settled(s)?;
++    parameters.validate()?;
++    validate_owned(s, &scene)?;
++    if parameters == scene.parameters {
++        return Ok(describe(&scene));
++    }
++    let new = recipe(&parameters);
++    let mut doc = (*s.doc).clone();
++    for (id, part) in scene.features.iter().zip(new) {
++        doc.feature_mut(*id).ok_or_else(|| bad(CMD, "reference primitive missing"))?.kind = part.kind;
++    }
++    scene.parameters = parameters;
++    store(&mut doc, &scene)?;
++    s.doc = Arc::new(doc);
++    Ok(describe(&scene))
++}
++fn configure(s: &mut Session, p: &Value) -> Result<Value> {
++    let scene = read(s)?.ok_or_else(|| bad(CMD, "create a reference scene first"))?;
++    let parameters = scene.parameters.merge(p)?;
++    replace_parameters(s, scene, parameters)
++}
++fn validate_name(name: &str) -> Result<()> {
++    if name.trim().is_empty() || name.len() > 80 {
++        return Err(bad(CMD, "step name must have 1..80 UTF-8 bytes"));
++    }
++    Ok(())
++}
++fn step_name(p: &Value) -> Result<&str> {
++    let object = p.as_object().ok_or_else(|| bad(CMD, "step requires an object"))?;
++    if object.len() != 1 {
++        return Err(bad(CMD, "step accepts name only"));
++    }
++    let name = p.get("name").and_then(Value::as_str).ok_or_else(|| bad(CMD, "step name required"))?.trim();
++    validate_name(name)?;
++    Ok(name)
++}
++fn capture(s: &mut Session, p: &Value) -> Result<Value> {
++    settled(s)?;
++    let name = step_name(p)?;
++    let mut scene = read(s)?.ok_or_else(|| bad(CMD, "create a reference scene first"))?;
++    validate_owned(s, &scene)?;
++    if scene.steps.len() >= 32 || scene.steps.iter().any(|step| step.name == name) {
++        return Err(bad(CMD, "step limit reached or duplicate name"));
++    }
++    scene.steps.push(Step { name: name.into(), parameters: scene.parameters.clone() });
++    let mut doc = (*s.doc).clone();
++    store(&mut doc, &scene)?;
++    s.doc = Arc::new(doc);
++    Ok(describe(&scene))
++}
++fn apply(s: &mut Session, p: &Value) -> Result<Value> {
++    let name = step_name(p)?;
++    let scene = read(s)?.ok_or_else(|| bad(CMD, "create a reference scene first"))?;
++    let parameters = scene.steps.iter().find(|step| step.name == name).ok_or_else(|| bad(CMD, "unknown reference step"))?.parameters.clone();
++    replace_parameters(s, scene, parameters)
++}
+--- a/crates/engine/tests/lift_plan.rs
++++ b/crates/engine/tests/lift_plan.rs
+@@ -1203,3 +1203,206 @@
+     assert!(serde_json::to_vec(&report)?.len() <= 32 * 1024);
+     Ok(())
+ }
++
++// Dedicated SKM workspace: original generic geometry, never OEM capacity evidence.
++#[test]
++fn skm_reference_scene_has_real_bodies_and_explicit_unvalidated_status() -> TestResult {
++    let mut s = Session::default();
++    let result = run(&mut s, "skm.scene.create", json!({}))?;
++    assert_eq!(result["validation_status"], "NOT_VALIDATED");
++    assert_eq!(result["operational_approval"], false);
++    assert!(result["capacity"].is_null());
++    assert!(result["load_mass_kg"].is_null());
++    assert!(result["rigging_wll_kg"].is_null());
++    assert!(s.model.state().bodies.len() >= 30);
++    assert!(s.model.results.iter().all(|r| r.error.is_none()));
++    assert!(s.model.state().bodies.iter().any(|b| b.name == "SKM Carga referencial"));
++    assert!(s.model.state().bodies.iter().any(|b| b.name == "SKM Pluma tramo 3"));
++    Ok(())
++}
++
++#[test]
++fn skm_reference_create_refuses_existing_geometry_without_mutation() -> TestResult {
++    let mut s = Session::default();
++    run(&mut s, "solid.box", json!({"length":10,"width":20,"height":30}))?;
++    let before = s.doc.to_json();
++    assert!(run(&mut s, "skm.scene.create", json!({})).is_err());
++    assert_eq!(s.doc.to_json(), before);
++    Ok(())
++}
++
++#[test]
++fn skm_reference_configuration_changes_geometry_preserves_user_feature_and_undo() -> TestResult {
++    let mut s = Session::default();
++    run(&mut s, "skm.scene.create", json!({}))?;
++    let user = run(&mut s, "solid.box", json!({"length":10,"width":20,"height":30,"body_name":"User obstacle"}))?;
++    let feature = number(&user, "feature")?;
++    let user_before = s.doc.feature(feature).cloned();
++    let before = s.doc.to_json();
++    let undo_len = s.undo.len();
++    let changed = run(&mut s, "skm.scene.configure", json!({"slew_deg":-30,"load_width_m":2.5,"spreader_width_m":3.5}))?;
++    assert_eq!(changed["parameters"]["slew_deg"], -30.0);
++    assert_eq!(s.doc.feature(feature), user_before.as_ref());
++    assert_ne!(s.doc.to_json(), before);
++    assert_eq!(s.undo.len(), undo_len + 1);
++    run(&mut s, "edit.undo", json!({}))?;
++    assert_eq!(s.doc.to_json(), before);
++    Ok(())
++}
++
++#[test]
++fn skm_reference_hostile_and_impossible_parameters_are_atomic() -> TestResult {
++    let mut s = Session::default();
++    run(&mut s, "skm.scene.create", json!({}))?;
++    let before = s.doc.to_json();
++    for invalid in [
++        json!({"boom_length_m":1e100}),
++        json!({"boom_length_m":-1}),
++        json!({"boom_angle_deg":0}),
++        json!({"slew_deg":181}),
++        json!({"hook_height_m":30}),
++        json!({"hook_height_m":2}),
++        json!({"load_width_m":"NaN"}),
++        json!({"load_width_m":null}),
++        json!({"capacity_t":750}),
++        json!({"upper_sling_drop_m":3,"lower_sling_drop_m":3}),
++        json!([]),
++    ] {
++        assert!(run(&mut s, "skm.scene.configure", invalid.clone()).is_err(), "{invalid}");
++        assert_eq!(s.doc.to_json(), before);
++    }
++    Ok(())
++}
++
++#[test]
++fn skm_reference_steps_persist_and_apply_parameters_without_approval() -> TestResult {
++    let mut s = Session::default();
++    run(&mut s, "skm.scene.create", json!({}))?;
++    run(&mut s, "skm.scene.capture", json!({"name":"Initial geometry"}))?;
++    run(&mut s, "skm.scene.configure", json!({"slew_deg":50}))?;
++    let doc = solidcraft_doc::Document::from_json(&s.doc.to_json())?;
++    let mut restored = Session::new(doc);
++    let directory = scratch("skm-reference-roundtrip")?;
++    let path = directory.join("reference.solidcraft");
++    run(&mut restored, "file.save_as", json!({"path":path}))?;
++    let mut restored = Session::default();
++    run(&mut restored, "doc.open", json!({"path":path}))?;
++    let inspected = run(&mut restored, "skm.scene.inspect", json!({}))?;
++    assert_eq!(inspected["managed_geometry_matches_parameters"], true);
++    assert_eq!(inspected["steps"][0]["name"], "Initial geometry");
++    let result = run(&mut restored, "skm.scene.apply", json!({"name":"Initial geometry"}))?;
++    assert_eq!(result["parameters"]["slew_deg"], 25.0);
++    assert_eq!(result["operational_approval"], false);
++    assert_eq!(result["validation_status"], "NOT_VALIDATED");
++    Ok(())
++}
++
++#[test]
++fn skm_reference_external_primitive_edit_is_not_overwritten() -> TestResult {
++    let mut s = Session::default();
++    run(&mut s, "skm.scene.create", json!({}))?;
++    if let Some(f) = s.doc_mut().features.first_mut() {
++        f.name = "User edited chassis".into();
++    }
++    let before = s.doc.to_json();
++    let inspection = run(&mut s, "skm.scene.inspect", json!({}))?;
++    assert_eq!(inspection["managed_geometry_matches_parameters"], false);
++    assert!(inspection["working_radius_m"].is_null());
++    assert!(run(&mut s, "skm.scene.configure", json!({"slew_deg":50})).is_err());
++    assert_eq!(s.doc.to_json(), before);
++    Ok(())
++}
++
++#[test]
++fn skm_reference_duplicate_step_and_unknown_step_do_not_modify_design() -> TestResult {
++    let mut s = Session::default();
++    run(&mut s, "skm.scene.create", json!({}))?;
++    run(&mut s, "skm.scene.capture", json!({"name":"A"}))?;
++    let before = s.doc.to_json();
++    assert!(run(&mut s, "skm.scene.capture", json!({"name":"A"})).is_err());
++    assert!(run(&mut s, "skm.scene.apply", json!({"name":"missing"})).is_err());
++    assert_eq!(s.doc.to_json(), before);
++    Ok(())
++}
++
++#[test]
++fn skm_reference_downstream_move_and_remove_invalidate_metrics_and_mutations() -> TestResult {
++    for (command, params) in [
++        ("solid.move", json!({"bodies":["SKM Carga referencial"],"translate":[1000,0,0]})),
++        ("solid.remove", json!({"bodies":["SKM Carga referencial"]})),
++    ] {
++        let mut s = Session::default();
++        run(&mut s, "skm.scene.create", json!({}))?;
++        run(&mut s, "skm.scene.capture", json!({"name":"Original"}))?;
++        run(&mut s, command, params)?;
++        let before = s.doc.to_json();
++        let inspection = run(&mut s, "skm.scene.inspect", json!({}))?;
++        assert_eq!(inspection["managed_geometry_matches_parameters"], false, "{command}");
++        assert!(inspection["working_radius_m"].is_null());
++        assert!(inspection["hook_position_m"].is_null());
++        assert!(run(&mut s, "skm.scene.configure", json!({"slew_deg":50})).is_err());
++        assert!(run(&mut s, "skm.scene.capture", json!({"name":"Changed"})).is_err());
++        assert!(run(&mut s, "skm.scene.apply", json!({"name":"Original"})).is_err());
++        assert_eq!(s.doc.to_json(), before);
++    }
++    Ok(())
++}
++
++#[test]
++fn skm_reference_explicit_and_implicit_boolean_dependencies_are_not_certified() -> TestResult {
++    use solidcraft_doc::{FeatureKind, Operation};
++    let mut s = Session::default();
++    run(&mut s, "skm.scene.create", json!({}))?;
++    // A timeline dependency is enough: do not claim valid coordinates even before
++    // the expensive boolean has evaluated or when its evaluation failed.
++    s.doc_mut().add_feature(
++        FeatureKind::Combine {
++            target: "SKM Carga referencial".into(),
++            tools: vec!["SKM Separador".into()],
++            operation: Operation::Cut,
++            keep_tools: true,
++        },
++        Some("External cut"),
++    )?;
++    assert_eq!(run(&mut s, "skm.scene.inspect", json!({}))?["managed_geometry_matches_parameters"], false);
++    let mut s = Session::default();
++    run(&mut s, "skm.scene.create", json!({}))?;
++    let mut global_cut = s.doc.features[0].kind.clone();
++    if let FeatureKind::Box { operation, .. } = &mut global_cut {
++        *operation = Operation::Cut;
++    }
++    s.doc_mut().add_feature(global_cut, Some("Implicit all-body cut"))?;
++    assert_eq!(run(&mut s, "skm.scene.inspect", json!({}))?["managed_geometry_matches_parameters"], false);
++    Ok(())
++}
++
++#[test]
++fn skm_reference_unrelated_body_move_remains_configurable() -> TestResult {
++    let mut s = Session::default();
++    run(&mut s, "skm.scene.create", json!({}))?;
++    let managed_count = s.doc.features.len();
++    run(&mut s, "solid.box", json!({"length":10,"width":20,"height":30,"body_name":"User obstacle"}))?;
++    run(&mut s, "solid.move", json!({"bodies":["User obstacle"],"translate":[1000,0,0]}))?;
++    let unrelated: Vec<_> = s.doc.features.iter().skip(managed_count).cloned().collect();
++    assert_eq!(run(&mut s, "skm.scene.inspect", json!({}))?["managed_geometry_matches_parameters"], true);
++    run(&mut s, "skm.scene.configure", json!({"slew_deg":40}))?;
++    assert_eq!(s.doc.features.iter().skip(managed_count).cloned().collect::<Vec<_>>(), unrelated);
++    Ok(())
++}
++
++#[test]
++fn skm_reference_rolled_back_timeline_does_not_report_current_geometry() -> TestResult {
++    let mut s = Session::default();
++    run(&mut s, "skm.scene.create", json!({}))?;
++    run(&mut s, "timeline.rollback", json!({"position":0}))?;
++    let before = s.doc.to_json();
++    let inspection = run(&mut s, "skm.scene.inspect", json!({}))?;
++    assert_eq!(inspection["managed_geometry_matches_parameters"], false);
++    assert!(inspection["working_radius_m"].is_null());
++    assert!(inspection["boom_tip_m"].is_null());
++    assert!(run(&mut s, "skm.scene.configure", json!({"slew_deg":50})).is_err());
++    assert_eq!(s.doc.to_json(), before);
++    run(&mut s, "timeline.rollback", json!({}))?;
++    assert_eq!(run(&mut s, "skm.scene.inspect", json!({}))?["managed_geometry_matches_parameters"], true);
++    Ok(())
++}
+--- a/crates/ui-egui/src/documents.rs
++++ b/crates/ui-egui/src/documents.rs
+@@ -100,6 +100,7 @@
+ 
+ /// Put `slot` into the app and return what was there.
+ fn swap_in(app: &mut SolveApp, mut slot: DocSlot) -> DocSlot {
++    crate::skm_workspace::reset_document(app);
+     if crate::render_workspace::active(app) {
+         let _ = crate::render_workspace::enter(app, false);
+     }
+@@ -222,6 +223,7 @@
+         app.menu.props = None;
+         crate::sketch_attachment_ui::clear(app);
+         app.session.replace_design(session);
++        crate::skm_workspace::reset_document(app);
+         crate::render_workspace::reset_document(app);
+         app.session.invalidate_view(rev);
+         app.cam = Camera::default();
+@@ -309,6 +311,7 @@
+         crate::dialogs::cancel(app);
+         app.tool = None;
+         app.session.replace_design(Session::default());
++        crate::skm_workspace::reset_document(app);
+         app.session.revision = rev + 1;
+         crate::prefs::apply_new_design(app);
+         app.cam = Camera::default();
+--- a/crates/ui-egui/src/lib.rs
++++ b/crates/ui-egui/src/lib.rs
+@@ -104,6 +104,7 @@
+ mod manage_dialogs_tests;
+ mod material_card_review;
+ mod material_editor;
++mod skm_workspace;
+ 
+ #[cfg(test)]
+ mod measurement_ui_tests;
+@@ -418,6 +419,8 @@
+     pub bom: Option<bom_panel::BomPanel>,
+     /// Native geometry-only lift-study manager, when open.
+     pub lift_plan: Option<lift_plan::LiftPlan>,
++    pub(crate) skm_workspace: Option<skm_workspace::State>,
++    pub(crate) skm_document_epoch: u64,
+     material_card_review: Option<material_card_review::ReviewWindow>,
+     /// Context menus, rename box and Properties window.
+     pub menu: context_menu::MenuState,
+@@ -603,6 +606,8 @@
+             design_properties: None,
+             bom: None,
+             lift_plan: None,
++            skm_workspace: None,
++            skm_document_epoch: 0,
+             material_card_review: None,
+             menu: context_menu::MenuState::default(),
+             gesture: mouse_gesture::State::default(),
+@@ -963,6 +968,7 @@
+                     prefs::apply_new_design(self);
+                 }
+                 if matches!(id, "file.new" | "doc.open" | "doc.recover") {
++                    skm_workspace::reset_document(self);
+                     documents::reset_chat(self);
+                     render_workspace::reset_document(self);
+                     dim_view::cancel();
+@@ -1741,7 +1747,7 @@
+             if !keymap::capturing(self) {
+                 expression_complete::begin_frame(ctx);
+             }
+-            if !self.embedded {
++            if !self.embedded && self.skm_workspace.is_none() {
+                 toolbar::shortcuts(self, ctx);
+             }
+         }
+@@ -1855,6 +1861,16 @@
+         scenario::clear_handles();
+         self.poll_deferred(ui.ctx());
+         self.poll_delete_check(ui.ctx());
++        if self.skm_workspace.is_some() {
++            file_load::show(self, ui.ctx());
++            open_meshing::show(self, ui.ctx());
++            documents::prompt(self, ui.ctx());
++            open_elsewhere::show(self, ui.ctx());
++            skm_workspace::show(self, ui);
++            recovery_ui::show(self, ui.ctx());
++            delete::show(self, ui.ctx());
++            return;
++        }
+         if !self.embedded {
+             toolbar::app_bar(self, ui);
+         }
+--- /dev/null
++++ b/crates/ui-egui/src/skm_workspace.rs
+@@ -0,0 +1,549 @@
++//! Dedicated, original SKM geometric planning shell. The native engine and viewport remain shared.
++//! No OEM capacity, rigging certification or operational approval is inferred from this scene.
++use crate::{
++    SolveApp,
++    theme::Tokens,
++    ui_kit::{Container, Edge, Surface},
++};
++use egui::{RichText, Ui};
++use serde_json::{Value, json};
++
++const AREAS: [&str; 6] = [
++    "skm.workspace.text_000",
++    "skm.workspace.text_001",
++    "skm.workspace.text_002",
++    "skm.workspace.text_003",
++    "skm.workspace.text_004",
++    "skm.workspace.text_005",
++];
++const PARTS: [&str; 5] =
++    ["skm.workspace.text_006", "skm.workspace.text_007", "skm.workspace.text_008", "skm.workspace.text_009", "skm.workspace.text_010"];
++const PARAMS: [(&str, &str, f64, f64, f64); 10] = [
++    ("boom_length_m", "skm.workspace.text_011", 16.0, 8.0, 30.0),
++    ("boom_angle_deg", "skm.workspace.text_012", 55.0, 15.0, 80.0),
++    ("slew_deg", "skm.workspace.text_013", 25.0, -180.0, 180.0),
++    ("hook_height_m", "skm.workspace.text_014", 7.0, 2.0, 32.0),
++    ("spreader_width_m", "skm.workspace.text_015", 3.0, 0.5, 6.0),
++    ("upper_sling_drop_m", "skm.workspace.text_016", 1.0, 0.5, 3.0),
++    ("lower_sling_drop_m", "skm.workspace.text_017", 1.0, 0.5, 3.0),
++    ("load_length_m", "skm.workspace.text_018", 3.0, 0.5, 6.0),
++    ("load_width_m", "skm.workspace.text_019", 2.0, 0.5, 4.0),
++    ("load_height_m", "skm.workspace.text_020", 1.6, 0.5, 4.0),
++];
++
++#[derive(Clone)]
++pub(crate) struct State {
++    area: usize,
++    part: usize,
++    values: [f64; 10],
++    dirty: bool,
++    inspection: Value,
++    error: Option<String>,
++    step_name: String,
++}
++impl Default for State {
++    fn default() -> Self {
++        Self { area: 0, part: 0, values: PARAMS.map(|p| p.2), dirty: false, inspection: Value::Null, error: None, step_name: String::new() }
++    }
++}
++impl State {
++    fn sync(&mut self, app: &mut SolveApp) {
++        if app.file_picker_busy() || app.file_load.busy() {
++            return;
++        }
++        match app.run("skm.scene.inspect", json!({})) {
++            Ok(value) => {
++                if !self.dirty {
++                    for (index, (key, _, default, _, _)) in PARAMS.iter().enumerate() {
++                        if let Some(slot) = self.values.get_mut(index) {
++                            *slot = value.get("parameters").and_then(|p| p.get(*key)).and_then(Value::as_f64).unwrap_or(*default);
++                        }
++                    }
++                }
++                self.inspection = value;
++            }
++            Err(error) => self.error = Some(error.to_string()),
++        }
++    }
++    fn apply(&mut self, app: &mut SolveApp) {
++        let mut parameters = serde_json::Map::new();
++        for ((key, _, _, _, _), value) in PARAMS.iter().zip(self.values.iter()) {
++            if !value.is_finite() {
++                self.error = Some(tr("skm.workspace.text_021").into());
++                return;
++            }
++            parameters.insert((*key).into(), json!(value));
++        }
++        match app.run("skm.scene.configure", Value::Object(parameters)) {
++            Ok(_) => {
++                self.dirty = false;
++                self.error = None;
++                self.sync(app);
++            }
++            Err(error) => self.error = Some(error.to_string()),
++        }
++    }
++    fn field(&mut self, ui: &mut Ui, index: usize) {
++        if let Some((_, label, _, low, high)) = PARAMS.get(index)
++            && let Some(value) = self.values.get_mut(index)
++        {
++            let label = ui.label(tr(label));
++            let response = ui.add(egui::DragValue::new(value).range(*low..=*high).speed(0.05).max_decimals(2)).labelled_by(label.id);
++            crate::scenario::publish_target(&format!("skm:parameter:{index}"), response.rect);
++            self.dirty |= response.changed();
++            ui.add_space(8.0);
++        }
++    }
++}
++
++fn button(ui: &mut Ui, label: &str, handle: &str) -> bool {
++    enabled_button(ui, label, handle, true)
++}
++fn enabled_button(ui: &mut Ui, label: &str, handle: &str, enabled: bool) -> bool {
++    let response = ui.add_enabled(enabled, egui::Button::new(label));
++    crate::scenario::publish_target(handle, response.rect);
++    response.clicked()
++}
++fn tr(key: &str) -> &str {
++    crate::i18n::tr(key)
++}
++fn note(ui: &mut Ui, text: &str) {
++    ui.label(RichText::new(text).small().color(Tokens::get().text_dim));
++}
++
++impl SolveApp {
++    /// Select the dedicated SKM shell. Creating the reference scene is explicit and
++    /// refused by the engine when an existing design would be overwritten.
++    pub fn enable_skm_workspace(&mut self) {
++        self.skm_workspace = Some(State::default());
++        self.home.open = false;
++        self.preferences.language = "es".into();
++        self.ui.layout = crate::shell::LayoutMode::Docked;
++        self.ui.show_browser = false;
++        self.ui.show_timeline = false;
++        self.lift_plan = None;
++        if self.file_picker_busy() || self.file_load.busy() {
++            return;
++        }
++        let existing = self.run("skm.scene.inspect", json!({})).ok().and_then(|v| v.get("exists").and_then(Value::as_bool)).unwrap_or(false);
++        if !existing {
++            if let Err(error) = self.run("skm.scene.create", json!({})) {
++                if let Some(state) = self.skm_workspace.as_mut() {
++                    state.error = Some(error.to_string());
++                }
++            } else {
++                self.fit_view();
++            }
++        }
++    }
++}
++
++/// Invalidate drafts on replacement/tab switching, including a command run while
++/// show temporarily owns State. An old draft must never configure another design.
++pub(crate) fn reset_document(app: &mut SolveApp) {
++    app.skm_document_epoch = app.skm_document_epoch.wrapping_add(1);
++    if app.skm_workspace.is_some() {
++        app.skm_workspace = Some(State::default());
++    }
++}
++
++pub(crate) fn show(app: &mut SolveApp, ui: &mut Ui) {
++    let Some(mut state) = app.skm_workspace.take() else { return };
++    let document_epoch = app.skm_document_epoch;
++    app.home.open = false;
++    app.ui.layout = crate::shell::LayoutMode::Docked;
++    app.ui.show_browser = false;
++    app.ui.show_timeline = false;
++    app.ui.layout.publish(ui.ctx());
++    app.shell.cards.clear();
++    app.shell.panels.clear();
++    app.shell.browser = None;
++    app.shell.history = None;
++    state.sync(app);
++    let geometry_current = state.inspection.get("exists").and_then(Value::as_bool) == Some(true)
++        && state.inspection.get("managed_geometry_matches_parameters").and_then(Value::as_bool) == Some(true);
++    let tokens = Tokens::get();
++    Container::new(ui.ctx(), Surface::ApplicationBar)
++        .edge("skm_header", Edge::Top)
++        .exact_size(44.0)
++        .frame(Container::new(ui.ctx(), Surface::ApplicationBar).edge_frame(tokens.app_bar))
++        .show(ui, |ui| {
++            let rect = ui.max_rect();
++            if app.custom_titlebar {
++                crate::titlebar::drag_area(ui, rect);
++            }
++            ui.horizontal(|ui| {
++                ui.label(RichText::new(tr("skm.workspace.text_022")).strong().size(16.0));
++                ui.separator();
++                ui.label(&app.session.doc.name);
++                if button(ui, tr("skm.workspace.text_023"), "skm:open") {
++                    crate::toolbar::FileAction::Open.run(app);
++                }
++                if button(ui, tr("skm.workspace.text_024"), "skm:save") {
++                    crate::toolbar::FileAction::Save.run(app);
++                }
++            });
++            if app.custom_titlebar {
++                crate::titlebar::caption_buttons(app, ui, rect);
++            }
++        });
++    Container::new(ui.ctx(), Surface::Chrome)
++        .edge("skm_workflow", Edge::Top)
++        .exact_size(76.0)
++        .frame(Container::new(ui.ctx(), Surface::Chrome).edge_frame(tokens.toolbar))
++        .show(ui, |ui| {
++            ui.horizontal(|ui| {
++                for (index, label) in AREAS.iter().enumerate() {
++                    let response = ui.selectable_label(state.area == index, format!("{}  {}", index + 1, tr(label)));
++                    crate::scenario::publish_target(&format!("skm:area:{index}"), response.rect);
++                    if response.clicked() {
++                        state.area = index;
++                    }
++                }
++            });
++            ui.separator();
++            ui.horizontal(|ui| {
++                if button(ui, tr("skm.workspace.text_025"), "skm:fit") {
++                    app.fit_view();
++                }
++                if button(ui, tr("skm.workspace.text_026"), "skm:iso") {
++                    app.start("view.isometric");
++                }
++                if button(ui, tr("skm.workspace.text_027"), "skm:top") {
++                    app.start("view.top");
++                }
++                if state.dirty {
++                    ui.colored_label(tokens.form_error, tr("skm.workspace.text_028"));
++                } else {
++                    note(ui, tr("skm.workspace.text_029"));
++                }
++            });
++        });
++    Container::new(ui.ctx(), Surface::Chrome)
++        .edge("skm_safety", Edge::Bottom)
++        .exact_size(42.0)
++        .frame(Container::new(ui.ctx(), Surface::Chrome).edge_frame(tokens.panel))
++        .show(ui, |ui| {
++            ui.horizontal_wrapped(|ui| {
++                ui.colored_label(tokens.form_error, RichText::new(tr("skm.workspace.text_030")).strong());
++                ui.label(tr("skm.workspace.text_031"));
++            });
++        });
++    let panel_width = if ui.available_width() < 1100.0 { 220.0 } else { 268.0 };
++    Container::new(ui.ctx(), Surface::Panel)
++        .edge("skm_assembly", Edge::Left)
++        .exact_size(panel_width)
++        .frame(Container::new(ui.ctx(), Surface::Panel).edge_frame(tokens.panel))
++        .show(ui, |ui| {
++            ui.heading(if state.area == 2 { tr("skm.workspace.text_032") } else { tr("skm.workspace.text_033") });
++            note(ui, tr("skm.workspace.text_034"));
++            ui.separator();
++            if button(ui, tr("skm.workspace.text_035"), "skm:crane") {
++                state.area = 1;
++            }
++            note(ui, tr("skm.workspace.text_036"));
++            ui.add_space(16.0);
++            for (index, name) in PARTS.iter().enumerate() {
++                let response =
++                    ui.add_sized([ui.available_width(), 50.0], egui::Button::new(tr(name)).selected(state.area == 2 && state.part == index));
++                crate::scenario::publish_target(&format!("skm:part:{index}"), response.rect);
++                crate::scenario::publish_target(&format!("skm:rig:{index}"), response.rect);
++                if response.clicked() {
++                    state.area = 2;
++                    state.part = index;
++                }
++                if index != 4 {
++                    note(ui, tr("skm.workspace.text_037"));
++                }
++            }
++            ui.separator();
++            note(ui, tr("skm.workspace.text_038"));
++        });
++    Container::new(ui.ctx(), Surface::Panel)
++        .edge("skm_inspector", Edge::Right)
++        .exact_size(panel_width + 24.0)
++        .frame(Container::new(ui.ctx(), Surface::Panel).edge_frame(tokens.panel))
++        .show(ui, |ui| {
++            egui::ScrollArea::vertical().show(ui, |ui| {
++                ui.heading(tr(AREAS.get(state.area).copied().unwrap_or("skm.workspace.text_000")));
++                ui.separator();
++                if !geometry_current {
++                    ui.colored_label(tokens.form_error, tr("skm.workspace.stale_geometry"));
++                    if let Some(warning) = state.inspection.get("geometry_warning").and_then(Value::as_str) {
++                        note(ui, warning);
++                    }
++                    ui.separator();
++                }
++                match state.area {
++                    0 => {
++                        ui.label(tr("skm.workspace.text_039"));
++                        note(ui, tr("skm.workspace.text_040"));
++                        ui.add_space(12.0);
++                        ui.label(tr("skm.workspace.text_041"));
++                        ui.label(tr("skm.workspace.text_042"));
++                        ui.label(tr("skm.workspace.text_043"));
++                        ui.label(tr("skm.workspace.text_044"));
++                        if state.inspection.get("exists").and_then(Value::as_bool) != Some(true) {
++                            ui.colored_label(tokens.form_error, tr("skm.workspace.text_045"));
++                            note(ui, tr("skm.workspace.text_046"));
++                        }
++                    }
++                    1 => {
++                        ui.label(RichText::new(tr("skm.workspace.text_047")).strong());
++                        note(ui, tr("skm.workspace.text_048"));
++                        for index in 0..4 {
++                            state.field(ui, index);
++                        }
++                        if let Some(radius) = state.inspection.get("working_radius_m").and_then(Value::as_f64) {
++                            ui.label(format!("{}: {radius:.2} m", tr("skm.workspace.radius")));
++                        }
++                        note(ui, tr("skm.workspace.text_049"));
++                    }
++                    2 => {
++                        ui.label(RichText::new(tr(PARTS.get(state.part).copied().unwrap_or("skm.workspace.text_050"))).strong());
++                        ui.add_space(10.0);
++                        match state.part {
++                            0 => state.field(ui, 3),
++                            1 => {
++                                state.field(ui, 5);
++                                note(ui, tr("skm.workspace.text_051"));
++                            }
++                            2 => {
++                                state.field(ui, 4);
++                                note(ui, tr("skm.workspace.text_052"));
++                            }
++                            3 => {
++                                state.field(ui, 6);
++                                note(ui, tr("skm.workspace.text_051"));
++                            }
++                            _ => {
++                                for index in 7..10 {
++                                    state.field(ui, index);
++                                }
++                                note(ui, tr("skm.workspace.text_053"));
++                            }
++                        }
++                    }
++                    3 => {
++                        let step_label = ui.label(tr("skm.workspace.text_054"));
++                        note(ui, tr("skm.workspace.text_055"));
++                        let response = ui.text_edit_singleline(&mut state.step_name).labelled_by(step_label.id);
++                        crate::scenario::publish_target("skm:step_name", response.rect);
++                        if enabled_button(ui, tr("skm.workspace.text_056"), "skm:capture", geometry_current && !state.dirty) {
++                            match app.run("skm.scene.capture", json!({"name": state.step_name})) {
++                                Ok(_) => {
++                                    state.error = None;
++                                    state.sync(app);
++                                }
++                                Err(error) => state.error = Some(error.to_string()),
++                            }
++                        }
++                        let steps = state.inspection.get("steps").and_then(Value::as_array).cloned().unwrap_or_default();
++                        for (index, step) in steps.into_iter().enumerate() {
++                            if let Some(name) = step.get("name").and_then(Value::as_str)
++                                && enabled_button(
++                                    ui,
++                                    &format!("{}: {name}", tr("skm.workspace.apply_step")),
++                                    &format!("skm:step:{index}"),
++                                    geometry_current && !state.dirty,
++                                )
++                            {
++                                match app.run("skm.scene.apply", json!({"name":name})) {
++                                    Ok(_) => {
++                                        state.dirty = false;
++                                        state.error = None;
++                                        state.sync(app);
++                                    }
++                                    Err(error) => state.error = Some(error.to_string()),
++                                }
++                            }
++                        }
++                    }
++                    4 => {
++                        ui.label(RichText::new(tr("skm.workspace.text_057")).strong().color(tokens.form_error));
++                        for label in [
++                            tr("skm.workspace.text_058"),
++                            tr("skm.workspace.text_059"),
++                            tr("skm.workspace.text_060"),
++                            tr("skm.workspace.text_061"),
++                            tr("skm.workspace.text_062"),
++                            tr("skm.workspace.text_063"),
++                        ] {
++                            ui.separator();
++                            ui.label(label);
++                            note(ui, tr("skm.workspace.text_064"));
++                        }
++                    }
++                    _ => {
++                        ui.label(tr("skm.workspace.text_065"));
++                        note(ui, tr("skm.workspace.text_066"));
++                        let report = format!(
++                            "{}\n{}\n{}\n{}",
++                            tr("skm.workspace.report_title"),
++                            app.session.doc.name,
++                            serde_json::to_string_pretty(&state.inspection).unwrap_or_default(),
++                            tr("skm.workspace.report_limit")
++                        );
++                        if button(ui, tr("skm.workspace.text_067"), "skm:report") {
++                            ui.ctx().copy_text(report.clone());
++                        }
++                        if button(ui, tr("skm.workspace.text_068"), "skm:report_save") {
++                            crate::toolbar::FileAction::Save.run(app);
++                        }
++                        ui.separator();
++                        ui.label(report);
++                        note(ui, tr("skm.workspace.text_069"));
++                    }
++                }
++                if matches!(state.area, 1 | 2) {
++                    ui.separator();
++                    if enabled_button(ui, tr("skm.workspace.text_070"), "skm:apply", geometry_current) {
++                        state.apply(app);
++                    }
++                    if button(ui, tr("skm.workspace.text_071"), "skm:discard") {
++                        state.dirty = false;
++                        state.error = None;
++                        state.sync(app);
++                    }
++                }
++                if let Some(error) = &state.error {
++                    ui.separator();
++                    ui.colored_label(tokens.form_error, error);
++                }
++            });
++        });
++    Container::new(ui.ctx(), Surface::Viewport)
++        .central()
++        .frame(Container::new(ui.ctx(), Surface::Viewport).edge_frame(egui::Color32::TRANSPARENT))
++        .show(ui, |ui| {
++            app.shell.content = Some(ui.max_rect());
++            crate::preview::update(app, ui.ctx());
++            crate::viewport::show(app, ui);
++        });
++    crate::scenario::publish_count("skm:active_area", state.area as f64);
++    app.resolve_fit(ui.ctx());
++    app.skm_workspace = Some(if app.skm_document_epoch == document_epoch { state } else { State::default() });
++}
++
++#[cfg(test)]
++fn initialize_portable_test_storage() {
++    if !solidcraft_engine::geom::portable::enabled() {
++        return;
++    }
++    static INIT: std::sync::OnceLock<Result<(), String>> = std::sync::OnceLock::new();
++    let result = INIT.get_or_init(|| {
++        let exe = std::env::current_exe().map_err(|e| e.to_string())?;
++        solidcraft_engine::geom::portable::initialize(&exe).map_err(|e| e.to_string())
++    });
++    assert!(result.is_ok(), "portable test storage: {result:?}");
++}
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    #[test]
++    fn shell_is_opt_in_and_keeps_safety_warning() {
++        initialize_portable_test_storage();
++        let mut h = crate::scenario::Harness::new();
++        assert!(h.app.skm_workspace.is_none());
++        h.app.enable_skm_workspace();
++        h.frames(3);
++        assert!(h.app.skm_workspace.is_some());
++        assert!(h.widget("NO OPERATIVO / NOT_VALIDATED").is_some());
++        assert!(crate::scenario::handle_at("skm:part:4").is_some());
++        assert!(crate::scenario::handle_at("appbar:file").is_none());
++        assert!(h.app.run("skm.scene.inspect", json!({})).unwrap()["exists"].as_bool().unwrap());
++    }
++}
++
++#[cfg(test)]
++mod interaction_tests {
++    use super::*;
++    use crate::scenario::Harness;
++
++    fn click(h: &mut Harness, handle: &str) {
++        let p = crate::scenario::handle_at(handle).expect("visible SKM control");
++        let result = h.call("ui.click", json!({"x":p.x,"y":p.y}));
++        assert_eq!(result["ok"], true, "{result}");
++    }
++    fn inspect(h: &mut Harness) -> Value {
++        h.app.run("skm.scene.inspect", json!({})).unwrap()
++    }
++    fn setup() -> Harness {
++        initialize_portable_test_storage();
++        let mut h = Harness::new();
++        h.app.enable_skm_workspace();
++        h.frames(3);
++        h
++    }
++    fn edit_boom(h: &mut Harness) {
++        click(h, "skm:area:1");
++        let p = crate::scenario::handle_at("skm:parameter:0").unwrap();
++        h.call("ui.drag", json!({"x0":p.x,"y0":p.y,"x1":p.x+40.0,"y1":p.y,"steps":8}));
++        assert!(h.app.skm_workspace.as_ref().unwrap().dirty);
++    }
++
++    #[test]
++    fn parameter_controls_apply_actual_geometry_and_steps_restore_it() {
++        let mut h = setup();
++        let original = inspect(&mut h);
++        click(&mut h, "skm:area:3");
++        click(&mut h, "skm:step_name");
++        h.call("ui.text", json!({"text":"Inicio"}));
++        click(&mut h, "skm:capture");
++        assert_eq!(inspect(&mut h)["steps"][0]["name"], "Inicio");
++        edit_boom(&mut h);
++        assert_eq!(inspect(&mut h)["boom_tip_m"], original["boom_tip_m"], "draft is not applied geometry");
++        click(&mut h, "skm:apply");
++        assert!(!h.app.skm_workspace.as_ref().unwrap().dirty);
++        assert_ne!(inspect(&mut h)["boom_tip_m"], original["boom_tip_m"]);
++        click(&mut h, "skm:area:3");
++        click(&mut h, "skm:step:0");
++        assert_eq!(inspect(&mut h)["parameters"], original["parameters"]);
++        assert_eq!(inspect(&mut h)["operational_approval"], false);
++    }
++
++    #[test]
++    fn dirty_draft_blocks_capture_and_step_application() {
++        let mut h = setup();
++        h.app.run("skm.scene.capture", json!({"name":"Inicio"})).unwrap();
++        edit_boom(&mut h);
++        click(&mut h, "skm:area:3");
++        click(&mut h, "skm:step_name");
++        h.call("ui.text", json!({"text":"Borrador"}));
++        click(&mut h, "skm:capture");
++        click(&mut h, "skm:step:0");
++        assert!(h.app.skm_workspace.as_ref().unwrap().dirty);
++        assert_eq!(inspect(&mut h)["steps"].as_array().unwrap().len(), 1);
++    }
++
++    #[test]
++    fn document_switch_and_async_adoption_drop_foreign_drafts() {
++        let mut h = setup();
++        edit_boom(&mut h);
++        crate::documents::open_tab(&mut h.app, solidcraft_engine::Session::default()).unwrap();
++        assert!(!h.app.skm_workspace.as_ref().unwrap().dirty);
++        // Exercise the same adoption path called by file_load::tick.
++        h.app.skm_workspace.as_mut().unwrap().dirty = true;
++        h.app.skm_workspace.as_mut().unwrap().step_name = "Foreign draft".into();
++        crate::documents::adopt(&mut h.app, solidcraft_engine::Session::default());
++        assert!(!h.app.skm_workspace.as_ref().unwrap().dirty);
++        assert!(h.app.skm_workspace.as_ref().unwrap().step_name.is_empty());
++        crate::documents::switch(&mut h.app, 0);
++        h.frames(3);
++        assert_eq!(inspect(&mut h)["parameters"]["boom_length_m"], 16.0);
++    }
++    #[test]
++    fn open_control_loads_saved_scene_without_foreign_draft() {
++        let mut h = setup();
++        let path = h.dir.join("skm-open.solidcraft");
++        h.app.run("file.save", json!({"path":path})).unwrap();
++        edit_boom(&mut h);
++        h.step(&json!({"choose_file":"skm-open.solidcraft"})).unwrap();
++        click(&mut h, "skm:open");
++        h.settle();
++        assert!(!h.app.skm_workspace.as_ref().unwrap().dirty);
++        assert_eq!(inspect(&mut h)["parameters"]["boom_length_m"], 16.0);
++        assert_eq!(inspect(&mut h)["operational_approval"], false);
++    }
++}
+--- /dev/null
++++ b/crates/ui-egui/tests/skm_preview.rs
+@@ -0,0 +1,180 @@
++//! Actual SKM application frames: egui and the production viewport callbacks share one
++//! offscreen render pass. No compositing, replacement model image, or window host.
++//! Opt in with SKM_PREVIEW_DIR; unavailable GPU/failed rendering is a failure, not a skip.
++use std::{path::Path, time::Duration};
++
++use egui_wgpu::{RenderState, RendererOptions, ScreenDescriptor, WgpuConfiguration, wgpu};
++use serde_json::json;
++use solidcraft_ui_egui::{
++    gpu,
++    scenario::{self, Harness},
++};
++
++const WIDTH: u32 = 1600;
++const HEIGHT: u32 = 1000;
++
++fn frame(h: &mut Harness, rs: &RenderState, events: Vec<egui::Event>, save: Option<&Path>) {
++    let mut input = egui::RawInput {
++        screen_rect: Some(egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(WIDTH as f32, HEIGHT as f32))),
++        time: Some(h.ctx.cumulative_frame_nr() as f64 / 60.0),
++        focused: true,
++        events,
++        ..Default::default()
++    };
++    h.app.raw_input_hook(&mut input);
++    let output = h.ctx.run_ui(input, |ui| {
++        h.app.logic(ui.ctx());
++        h.app.ui(ui);
++    });
++    h.output = output.platform_output.clone();
++    let jobs = h.ctx.tessellate(output.shapes, output.pixels_per_point);
++    assert!(jobs.iter().any(|p| matches!(p.primitive, egui::epaint::Primitive::Callback(_))), "real viewport callback absent");
++    let screen = ScreenDescriptor { size_in_pixels: [WIDTH, HEIGHT], pixels_per_point: output.pixels_per_point };
++    let size = wgpu::Extent3d { width: WIDTH, height: HEIGHT, depth_or_array_layers: 1 };
++    let texture = rs.device.create_texture(&wgpu::TextureDescriptor {
++        label: Some("SKM full application evidence"),
++        size,
++        mip_level_count: 1,
++        sample_count: 1,
++        dimension: wgpu::TextureDimension::D2,
++        format: rs.target_format,
++        usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
++        view_formats: &[],
++    });
++    let view = texture.create_view(&Default::default());
++    let mut encoder = rs.device.create_command_encoder(&Default::default());
++    let mut renderer = rs.renderer.write();
++    for (id, deltas) in &output.textures_delta.set {
++        for delta in deltas {
++            renderer.update_texture(&rs.device, &rs.queue, *id, delta);
++        }
++    }
++    let mut submissions = renderer.update_buffers(&rs.device, &rs.queue, &mut encoder, &jobs, &screen);
++    {
++        let mut pass = encoder
++            .begin_render_pass(&wgpu::RenderPassDescriptor {
++                label: Some("SKM app + viewport"),
++                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
++                    view: &view,
++                    resolve_target: None,
++                    depth_slice: None,
++                    ops: wgpu::Operations { load: wgpu::LoadOp::Clear(wgpu::Color::WHITE), store: wgpu::StoreOp::Store },
++                })],
++                depth_stencil_attachment: None,
++                timestamp_writes: None,
++                occlusion_query_set: None,
++                multiview_mask: None,
++            })
++            .forget_lifetime();
++        renderer.render(&mut pass, &jobs, &screen);
++    }
++    let row = WIDTH * 4;
++    let padded = row.div_ceil(wgpu::COPY_BYTES_PER_ROW_ALIGNMENT) * wgpu::COPY_BYTES_PER_ROW_ALIGNMENT;
++    let read = rs.device.create_buffer(&wgpu::BufferDescriptor {
++        label: Some("SKM evidence readback"),
++        size: u64::from(padded) * u64::from(HEIGHT),
++        usage: wgpu::BufferUsages::MAP_READ | wgpu::BufferUsages::COPY_DST,
++        mapped_at_creation: false,
++    });
++    encoder.copy_texture_to_buffer(
++        texture.as_image_copy(),
++        wgpu::TexelCopyBufferInfo {
++            buffer: &read,
++            layout: wgpu::TexelCopyBufferLayout { offset: 0, bytes_per_row: Some(padded), rows_per_image: Some(HEIGHT) },
++        },
++        size,
++    );
++    submissions.push(encoder.finish());
++    let submission = rs.queue.submit(submissions);
++    for id in &output.textures_delta.free {
++        renderer.free_texture(id);
++    }
++    let stats = renderer.callback_resources.get::<gpu::Renderer>().expect("production viewport renderer installed").stats();
++    drop(renderer);
++    let slice = read.slice(..);
++    let (tx, rx) = std::sync::mpsc::channel();
++    slice.map_async(wgpu::MapMode::Read, move |result| {
++        let _ = tx.send(result);
++    });
++    rs.device.poll(wgpu::PollType::Wait { submission_index: Some(submission), timeout: Some(Duration::from_secs(60)) }).expect("GPU completion");
++    rx.recv_timeout(Duration::from_secs(5)).expect("readback callback").expect("readback mapping");
++    let stats = *stats.lock().expect("draw statistics");
++    assert!(stats.draw_calls > 0 && stats.triangles > 0, "viewport must draw actual geometry: {stats:?}");
++    if let Some(path) = save {
++        let data = slice.get_mapped_range().expect("mapped pixels");
++        let rgba: Vec<u8> = data.chunks(padded as usize).take(HEIGHT as usize).flat_map(|r| r[..row as usize].iter().copied()).collect();
++        image::RgbaImage::from_raw(WIDTH, HEIGHT, rgba).expect("complete image").save(path).expect("write evidence PNG");
++        eprintln!("SKM full native UI frame: {} — {stats:?}", path.display());
++    }
++}
++
++#[test]
++fn skm_full_application_gpu_preview() {
++    let Some(dir) = std::env::var_os("SKM_PREVIEW_DIR") else {
++        eprintln!("SKM_PREVIEW_DIR unset: explicit evidence capture not requested");
++        return;
++    };
++    let dir = std::path::PathBuf::from(dir);
++    std::fs::create_dir_all(&dir).expect("evidence directory");
++    if solidcraft_engine::geom::portable::enabled() {
++        solidcraft_engine::geom::portable::initialize(&std::env::current_exe().expect("test executable")).expect("portable test storage");
++    }
++    let config = WgpuConfiguration::default();
++    let instance = pollster::block_on(config.wgpu_setup.new_instance());
++    let rs = pollster::block_on(RenderState::create(
++        &config,
++        &instance,
++        None,
++        RendererOptions { msaa_samples: 1, depth_stencil_format: None, dithering: false, ..Default::default() },
++    ))
++    .expect("an offscreen GPU adapter is required for FULL application evidence");
++    assert_eq!(rs.target_format, wgpu::TextureFormat::Rgba8Unorm, "readback expects RGBA");
++    let mut h = Harness::new();
++    h.app.enable_skm_workspace();
++    assert_eq!(h.app.run("skm.scene.inspect", json!({})).expect("scene inspection")["exists"], true);
++    assert!(!h.app.session.world_state().bodies.is_empty(), "reference scene must contain real model bodies");
++    // Harness discards texture deltas. Start a new context, then render EVERY frame through
++    // the GPU so fonts and images are uploaded exactly as in the native host.
++    h.ctx = egui::Context::default();
++    h.ctx.enable_accesskit();
++    h.ctx.set_pixels_per_point(1.0);
++    solidcraft_ui_egui::fonts::setup_bundled_fonts(&h.ctx);
++    solidcraft_ui_egui::theme::apply(&h.ctx);
++    h.app.set_wgpu_split(&rs, 24, 8, 1);
++    for _ in 0..8 {
++        frame(&mut h, &rs, vec![], None);
++    }
++    h.app.fit_view();
++    let before = h.app.session.doc.to_json();
++    for (index, label) in ["obra", "grua", "carga", "maniobra", "verificaciones", "informe"].iter().enumerate() {
++        let at = scenario::handle_at(&format!("skm:area:{index}")).expect("SKM area button");
++        frame(&mut h, &rs, vec![egui::Event::PointerMoved(at)], None);
++        for pressed in [true, false] {
++            frame(
++                &mut h,
++                &rs,
++                vec![egui::Event::PointerButton { pos: at, button: egui::PointerButton::Primary, pressed, modifiers: egui::Modifiers::NONE }],
++                None,
++            );
++        }
++        for _ in 0..3 {
++            frame(&mut h, &rs, vec![], None);
++        }
++        let heading = ["Obra", "Grúa", "Carga y aparejos", "Maniobra", "Verificaciones", "Informe"][index];
++        assert!(h.widget(heading).is_some(), "selected area inspector heading must be visible: {heading}");
++        assert!(h.widget("NO OPERATIVO / NOT_VALIDATED").is_some(), "permanent safety banner");
++        assert!(scenario::handle_at("appbar:file").is_none(), "CAD app bar must not appear in SKM shell");
++        assert_eq!(h.app.session.doc.to_json(), before, "changing areas must not mutate the scene");
++        frame(&mut h, &rs, vec![], Some(&dir.join(format!("skm-{index}-{label}.png"))));
++    }
++    std::fs::write(
++        dir.join("capture.json"),
++        serde_json::to_vec_pretty(&json!({
++            "capture": "full application egui + production GPU viewport callbacks; single render target, no compositing",
++            "adapter": format!("{:?}", rs.adapter.get_info()), "width": WIDTH, "height": HEIGHT,
++            "operational_validation": false, "scene": "generic geometric reference, not OEM RT750"
++        }))
++        .expect("capture metadata"),
++    )
++    .expect("save capture metadata");
++}
