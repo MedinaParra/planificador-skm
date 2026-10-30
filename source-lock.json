@@ -6,5 +6,8 @@
   "planner_tree_sha256": "f6497758b35d8d6fd60697379f25f91ba95e6b39d11450cb70e0e2d4a1a6b57c",
   "planner_tree_files": 3198,
   "portable_tree_sha256": "b25dc0548a200f63e90fc2f812fc19a65adaf20a36d0820c68af93eb0679987f",
-  "portable_tree_files": 3202
+  "portable_tree_files": 3202,
+  "skm_patch_sha256": "65342b309960d399a1d4aa0fc95077550ff887b2f4fbd24b39c9f1e2e5b6c3d0",
+  "skm_tree_sha256": "532f657d929d4d74dc38c991a22280354a464bfb258e5d0a4bc7d229f00a2083",
+  "skm_tree_files": 3207
 }
