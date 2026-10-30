@@ -122,7 +122,8 @@ if ($counts.Count -ne 3 -or $counts -notcontains 51 -or $counts -notcontains 65 
 $producerSource = Get-Content -LiteralPath (Join-Path $prior 'source-receipt.json') -Raw | ConvertFrom-Json
 if ($producerSource.status -ne 'PASS' -or $producerSource.reconstructed_tree_sha256 -ne '532f657d929d4d74dc38c991a22280354a464bfb258e5d0a4bc7d229f00a2083') { throw 'Producer source tree provenance mismatch' }
 # Independently prove that the entire QA tree differs from the original only by this
-# one cfg(test)-scoped platform guard. No normalization of other bytes is permitted.
+# Unix-only unit-test guard and the pinned integration-test-only GPU capture fix.
+# No production bytes or any other manifest row may differ.
 $proof = @'
 import hashlib,pathlib,sys
 root=pathlib.Path(sys.argv[1]); rows=[]; changed=0
@@ -137,11 +138,15 @@ for p in sorted(root.rglob('*'), key=lambda p:p.relative_to(root).as_posix()):
     if rel.as_posix()=='crates/ui-egui/src/cli_link.rs':
         if data.count(new)!=1: raise SystemExit('Missing exact test-only guard')
         data=data.replace(new,old,1); changed+=1
-    rows.append(hashlib.sha256(data).hexdigest()+'  '+rel.as_posix()+'\n')
-assert changed==1 and len(rows)==3207
+    digest=hashlib.sha256(data).hexdigest()
+    if rel.as_posix()=='crates/ui-egui/tests/skm_preview.rs':
+        assert digest=='25b8d1954ca7360f7c8e10f8c544727bdaa01e35b1a1aa6bc72cd653fe731299','Unexpected GPU integration test bytes'
+        digest='050d322a894efaf9fad3673fc189fa0c5131c64c02c1bd92eaa7811da47b2dec'; changed+=1
+    rows.append(digest+'  '+rel.as_posix()+'\n')
+assert changed==2 and len(rows)==3207
 actual=hashlib.sha256(''.join(rows).encode()).hexdigest()
 assert actual=='532f657d929d4d74dc38c991a22280354a464bfb258e5d0a4bc7d229f00a2083',actual
-print('PASS: full QA tree equals producer tree after reversing only Unix-only test guard')
+print('PASS: full QA tree equals producer tree after reversing only Unix test guard and the pinned GPU integration-test row')
 '@
 $null = Invoke-Logged 'qa-source-equivalence' 'python' @('-c', $proof, $Source)
 if ([IO.DriveInfo]::new([IO.Path]::GetPathRoot($Source)).AvailableFreeSpace -lt 8GB) { throw 'Less than 8 GiB free before QA compilation' }
@@ -191,6 +196,38 @@ if (-not $previewMetadata.adapter -or $previewMetadata.operational_validation -n
     $previewMetadata.capture -notmatch 'production GPU viewport callbacks; single render target, no compositing') {
     throw 'Full application preview provenance missing'
 }
+# Require evidence for each fresh scene render, not merely six valid PNG headers.
+function Assert-FiniteNumber($Value, [string]$Label) {
+    if ($null -eq $Value -or -not ($Value -is [double] -or $Value -is [long] -or $Value -is [int] -or $Value -is [decimal]) -or
+        [double]::IsNaN([double]$Value) -or [double]::IsInfinity([double]$Value)) { throw "Non-finite/non-numeric capture field: $Label" }
+}
+$areas = @('obra','grua','carga','maniobra','verificaciones','informe')
+$captures = @($previewMetadata.captures)
+if ($captures.Count -ne 6 -or $previewMetadata.fresh_capture_gate -notmatch 'every PNG has triangles > 0') { throw 'Six fresh geometry records required' }
+if (@($previewMetadata.warmup | Where-Object { $_.triangles -gt 0 }).Count -lt 1) { throw 'Warmup never demonstrated actual geometry' }
+$previewStatsHashes = @{}
+for ($i=0; $i -lt 6; $i++) {
+    $capture = $captures[$i]
+    if ($capture.area -ne $areas[$i] -or $capture.bodies -ne 33 -or $capture.draw_calls -le 0 -or $capture.triangles -le 0 -or $capture.camera_zoom_factor -ne 1.001) {
+        throw "Missing fresh model geometry in capture $i"
+    }
+    Assert-FiniteNumber $capture.camera_distance_before "camera-before-$i"
+    Assert-FiniteNumber $capture.camera_distance_after "camera-after-$i"
+    if ($capture.camera_distance_before -le 0 -or $capture.camera_distance_after -le $capture.camera_distance_before) { throw "Camera cache invalidation missing in capture $i" }
+    if (@($capture.bounds.min).Count -ne 3 -or @($capture.bounds.max).Count -ne 3) { throw "Missing 3D bounds in capture $i" }
+    for ($axis=0; $axis -lt 3; $axis++) {
+        Assert-FiniteNumber $capture.bounds.min[$axis] "bounds-min-$i-$axis"
+        Assert-FiniteNumber $capture.bounds.max[$axis] "bounds-max-$i-$axis"
+        if ($capture.bounds.max[$axis] -le $capture.bounds.min[$axis]) { throw "Degenerate scene bounds in capture $i" }
+    }
+    $statsName = [IO.Path]::ChangeExtension($previewNames[$i], 'stats.json')
+    $statsPath = Join-Path $previewDir $statsName
+    $stats = Get-Content -LiteralPath $statsPath -Raw | ConvertFrom-Json
+    if ($stats.status -ne 'FRESH_GEOMETRY_RENDER' -or $stats.draw_calls -ne $capture.draw_calls -or $stats.triangles -ne $capture.triangles -or $stats.camera_distance -ne $capture.camera_distance_after) {
+        throw "Per-PNG draw evidence mismatch: $statsName"
+    }
+    $previewStatsHashes[$statsName] = (Get-FileHash -LiteralPath $statsPath -Algorithm SHA256).Hash.ToLowerInvariant()
+}
 if ((Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant() -ne $productionExeSha) {
     throw 'Production executable changed during tests; test artifacts cannot replace the app'
 }
@@ -217,7 +254,7 @@ $receipt = [ordered]@{
     original_log_sha256=$priorHashes; test_counts=$counts
     skm_shell_tests='PASS'; skm_shell_test_count=5
     skm_full_gpu_preview='PASS'; skm_preview_test_count=1
-    skm_preview_png_sha256=$previewHashes; skm_preview_adapter=$previewMetadata.adapter
+    skm_preview_png_sha256=$previewHashes; skm_preview_stats_sha256=$previewStatsHashes; skm_preview_adapter=$previewMetadata.adapter
     skm_preview_visual_review='PENDING_HUMAN_OR_ASSISTANT_IMAGE_INSPECTION'
     commands=$script:Commands; path_test_count=$pathCount
     base_commit=$producerSource.base_commit; delta_sha256=$producerSource.delta_sha256
@@ -225,7 +262,8 @@ $receipt = [ordered]@{
     source_commit=$producerCommit; producer_source_commit=$producerCommit; qa_commit=$env:GITHUB_SHA
     producer_tree_sha256=$producerSource.reconstructed_tree_sha256; skm_tree_sha256=$producerSource.skm_tree_sha256
     qa_tree_sha256=$qaSource.reconstructed_tree_sha256; qa_test_patch_sha256=$qaSource.qa_test_patch_sha256
-    qa_source_difference='Only #[cfg(unix)] on inherited Unix symlink test; exact inverse full-tree hash verified'
+    qa_source_difference='Only #[cfg(unix)] on inherited Unix symlink test and pinned skm_preview integration-test capture fix; inverse full production-tree hash verified'
+    qa_preview_test_sha256='25b8d1954ca7360f7c8e10f8c544727bdaa01e35b1a1aa6bc72cd653fe731299'
     embedded_source_commit='unknown; cache trust disabled'
     target='x86_64-pc-windows-msvc'; toolchain=$rustVersion.Trim(); cargo_version=$cargoVersion.Trim()
     features=@('portable','raytrace-cpu','bundled-render-library')
