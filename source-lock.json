@@ -9,5 +9,8 @@
   "portable_tree_files": 3202,
   "skm_patch_sha256": "65342b309960d399a1d4aa0fc95077550ff887b2f4fbd24b39c9f1e2e5b6c3d0",
   "skm_tree_sha256": "532f657d929d4d74dc38c991a22280354a464bfb258e5d0a4bc7d229f00a2083",
-  "skm_tree_files": 3207
+  "skm_tree_files": 3207,
+  "qa_test_patch_sha256": "dcf7deab0a420729b081f3c806177ec1e9f0a4779fb9408eb2c0bb031963a811",
+  "qa_tree_sha256": "b790a2e271a19218ee16f96a10f67fc67b0780ede716c5d8c7ac128e79d96eef",
+  "qa_tree_files": 3207
 }
