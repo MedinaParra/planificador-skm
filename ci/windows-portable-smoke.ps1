@@ -1,4 +1,4 @@
-# Windows PowerShell 5.1. Isolated GUI QA, no control channel and no credentials.
+﻿# Windows PowerShell 5.1. Isolated GUI QA, no control channel and no credentials.
 # This script never changes ACLs, deletes existing folders, or touches source data.
 [CmdletBinding()]
 param(
@@ -155,38 +155,105 @@ function Inspect-Process($Process) {
     if ($tcp.Count -or $udp.Count -or $children.Count) { throw "Unexpected sockets/children: TCP=$($tcp.Count), UDP=$($udp.Count), children=$($children.Count)" }
     return @{ observed_utc=[DateTime]::UtcNow.ToString('o'); tcp=$tcp.Count; udp=$udp.Count; children=$children.Count }
 }
-function Open-Planner($Process, [string] $LogDir) {
-    $root = Get-WindowRoot $Process
-    $before = Uia-Names $root
-    $before | Set-Content -LiteralPath (Join-Path $LogDir 'uia-before.txt') -Encoding UTF8
-    $file = Find-Uia $root '^(File|Archivo)( menu)?$'
-    if (-not $file) { throw 'File menu not exposed through UI Automation' }
-    Click-Uia $Process $file
-    Start-Sleep -Milliseconds 400
-    $root = Get-WindowRoot $Process
-    $item = Find-Uia $root '^(Lift study|Estudio de izaje)'
-    if (-not $item) {
-        Uia-Names $root | Set-Content -LiteralPath (Join-Path $LogDir 'uia-menu.txt') -Encoding UTF8
-        throw 'Lift study menu entry not exposed through UI Automation'
-    }
-    Uia-Names $root | Set-Content -LiteralPath (Join-Path $LogDir 'uia-menu.txt') -Encoding UTF8
-    Click-Uia $Process $item
-    $deadline = [DateTime]::UtcNow.AddSeconds(15)
+function Require-Uia($Process, [string] $Pattern) {
+    $deadline=[DateTime]::UtcNow.AddSeconds(15)
     do {
-        Start-Sleep -Milliseconds 250
-        $names = @(Uia-Names (Get-WindowRoot $Process))
-        $title = @($names | Where-Object { $_ -match '(Geometric lift study|Estudio geom)' })
-        $warning = @($names | Where-Object { $_ -match '(NOT OPERATIONAL|NO OPERATIVO).*NOT_VALIDATED' })
-    } while (($title.Count -eq 0 -or $warning.Count -eq 0) -and [DateTime]::UtcNow -lt $deadline)
-    $names | Set-Content -LiteralPath (Join-Path $LogDir 'uia-planner.txt') -Encoding UTF8
-    if ($title.Count -eq 0 -or $warning.Count -eq 0) { throw 'Planner title/NOT_VALIDATED warning not observed in native accessibility tree' }
-    return @{ opened=$true; title_observed=$title; warning_observed=$warning }
+        $element=Find-Uia (Get-WindowRoot $Process) $Pattern
+        if ($element) { return $element }
+        Start-Sleep -Milliseconds 200
+    } while ([DateTime]::UtcNow -lt $deadline)
+    throw "SKM accessible element not observed: $Pattern"
+}
+function Assert-SkmShell($Process) {
+    $null=Require-Uia $Process '^NO OPERATIVO / NOT_VALIDATED$'
+    $root=Get-WindowRoot $Process
+    if (Find-Uia $root '^(File|Archivo)( menu)?$') { throw 'Legacy CAD File appbar is present in SKM workspace' }
+    foreach ($area in @('1\s+Obra','2\s+Grúa','3\s+Carga y aparejos','4\s+Maniobra','5\s+Verificaciones','6\s+Informe')) {
+        if (-not (Find-Uia $root "^$area`$")) { throw "SKM workflow area missing: $area" }
+    }
+}
+function Set-SkmLoadLength($Process, [double] $Value) {
+    # Only an accessible editable numeric control with the expected label is accepted.
+    # A static label is not evidence of an editable parameter.
+    $target=$null
+    foreach ($element in (Uia-Elements (Get-WindowRoot $Process))) {
+        if ($element.Current.Name -match '^Largo de carga' -and -not $element.Current.IsOffscreen -and $element.Current.IsEnabled -and
+            $element.Current.ControlType -in @([System.Windows.Automation.ControlType]::Spinner,[System.Windows.Automation.ControlType]::Edit)) { $target=$element; break }
+    }
+    if (-not $target) { throw 'Load-length numeric control has no accessible name/editable role' }
+    $range=$null; $valuePattern=$null
+    if ($target.TryGetCurrentPattern([System.Windows.Automation.RangeValuePattern]::Pattern,[ref]$range)) {
+        ([System.Windows.Automation.RangeValuePattern]$range).SetValue($Value)
+    } elseif ($target.TryGetCurrentPattern([System.Windows.Automation.ValuePattern]::Pattern,[ref]$valuePattern)) {
+        ([System.Windows.Automation.ValuePattern]$valuePattern).SetValue($Value.ToString([Globalization.CultureInfo]::InvariantCulture))
+    } else {
+        # Native keyboard fallback is targeted by verified accessibility bounds, not guessed pixels.
+        Click-Uia $Process $target
+        Click-Uia $Process $target
+        [System.Windows.Forms.SendKeys]::SendWait('^a')
+        [System.Windows.Forms.SendKeys]::SendWait($Value.ToString([Globalization.CultureInfo]::InvariantCulture))
+        [System.Windows.Forms.SendKeys]::SendWait('{ENTER}')
+    }
+    $null=Require-Uia $Process '^Cambios geométricos sin aplicar$'
+}
+function Open-Planner($Process, [string] $LogDir) {
+    Assert-SkmShell $Process
+    Uia-Names (Get-WindowRoot $Process) | Set-Content -LiteralPath (Join-Path $LogDir 'uia-startup.txt') -Encoding UTF8
+    $shots=@(Capture-Window $Process (Join-Path $LogDir 'skm-startup.png'))
+    # Each click must reveal the unique inspector content, not merely another tab label.
+    $areas=@(
+        @{tab='^1\s+Obra$';content='^Terreno: no caracterizado$'},
+        @{tab='^2\s+Grúa$';content='^Configuración geométrica$'},
+        @{tab='^3\s+Carga y aparejos$';content='^Altura del gancho'},
+        @{tab='^4\s+Maniobra$';content='^Pasos geométricos$'},
+        @{tab='^5\s+Verificaciones$';content='^Capacidad OEM$'},
+        @{tab='^6\s+Informe$';content='^Resumen geométrico$'})
+    $index=0
+    foreach ($area in $areas) {
+        Click-Uia $Process (Require-Uia $Process $area.tab)
+        $null=Require-Uia $Process $area.content
+        Assert-SkmShell $Process
+        Uia-Names (Get-WindowRoot $Process) | Set-Content -LiteralPath (Join-Path $LogDir "uia-area-$index.txt") -Encoding UTF8
+        $shots+=Capture-Window $Process (Join-Path $LogDir "skm-area-$index.png")
+        $index++
+    }
+    Click-Uia $Process (Require-Uia $Process '^05\s+Carga$')
+    $null=Require-Uia $Process '^Volumen envolvente\.'
+    Set-SkmLoadLength $Process 4.25
+    $shots+=Capture-Window $Process (Join-Path $LogDir 'skm-load-draft.png')
+    Click-Uia $Process (Require-Uia $Process '^Aplicar geometría$')
+    Start-Sleep -Milliseconds 500
+    if (Find-Uia (Get-WindowRoot $Process) '^Cambios geométricos sin aplicar$') { throw 'Applying load geometry left the draft pending' }
+    Click-Uia $Process (Require-Uia $Process '^6\s+Informe$')
+    # Native inspector report comes from skm.scene.inspect; this proves the committed
+    # parameter, not GPU visibility or certified physical dimensions.
+    $report=Require-Uia $Process '(?s)SKM.*ESTUDIO GEOMÉTRICO.*"load_length_m"\s*:\s*4\.25'
+    $reportText=$report.Current.Name
+    if ($reportText -notmatch '"operational_approval"\s*:\s*false' -or $reportText -notmatch '"managed_geometry_matches_parameters"\s*:\s*true') { throw 'Report does not attest current reference geometry and no operational approval' }
+    $reportText | Set-Content -LiteralPath (Join-Path $LogDir 'committed-geometry-report.txt') -Encoding UTF8
+    $shots+=Capture-Window $Process (Join-Path $LogDir 'skm-load-committed.png')
+    Assert-SkmShell $Process
+    return @{ opened_directly=$true; six_areas_interacted=$true; load_component_interacted=$true; accessible_parameter_edited=$true; committed_load_length_m=4.25; warning_observed=$true; legacy_file_appbar_absent=$true; screenshots=$shots; crane_pixels_verified=$false; visual_review_required=$true }
+}
+function Close-AppCleanly($Process) {
+    if (-not $Process.CloseMainWindow()) { throw 'Could not request clean window close' }
+    # A newly created reference scene and the test edit are deliberately unsaved.
+    # Discard only this isolated QA document; never interact with a real user file.
+    $deadline=[DateTime]::UtcNow.AddSeconds(30)
+    do {
+        Start-Sleep -Milliseconds 200
+        $Process.Refresh()
+        if ($Process.HasExited) { return }
+        $discard=Find-Uia (Get-WindowRoot $Process) "^(No guardar|Don't Save)$"
+        if ($discard) { Click-Uia $Process $discard }
+    } while ([DateTime]::UtcNow -lt $deadline)
+    throw 'Application did not close cleanly within 30 seconds'
 }
 function Start-App([string] $AppPath,[string] $CaseDir,[bool] $SafeMode) {
     $profile = Join-Path $CaseDir 'profile'
     foreach ($sub in @('home','roaming','local','temp','config','xdg-data','codex')) { New-Item -ItemType Directory -Path (Join-Path $profile $sub) | Out-Null }
     $psi = New-Object Diagnostics.ProcessStartInfo
-    $psi.FileName=$AppPath; $psi.Arguments=if ($SafeMode) { '--sample --safe-mode' } else { '--sample' }
+    $psi.FileName=$AppPath; $psi.Arguments=if ($SafeMode) { '--safe-mode' } else { '' }
     $psi.WorkingDirectory=$CaseDir; $psi.UseShellExecute=$false
     $psi.RedirectStandardError=$true; $psi.RedirectStandardOutput=$true
     foreach ($key in @('SOLIDCRAFT_CONTROL_PORT','SOLIDCRAFT_CONTROL_TOKEN','SOLVECRAFT_CONTROL_PORT','SOLVECRAFT_CONTROL_TOKEN','CRAFT_CONTROL_PORT','CRAFT_CONTROL_TOKEN','SOLIDCRAFT_SAFE_MODE','SOLIDCRAFT_RENDERER','WGPU_BACKEND','WGPU_DX12_COMPILER')) { $psi.EnvironmentVariables.Remove($key) }
@@ -212,7 +279,7 @@ $Status='FAIL'
 $Failure=$null
 try {
     $NormalApp=$null
-    foreach ($case in @(@{name='normal';safe=$false;planner=$true},@{name='safe-mode';safe=$true;planner=$false},@{name='moved-unicode';safe=$false;planner=$true})) {
+    foreach ($case in @(@{name='normal';safe=$false;planner=$true},@{name='safe-mode';safe=$true;planner=$true},@{name='moved-unicode';safe=$false;planner=$true})) {
         $caseDir=Join-Path $EvidenceDir $case.name
         New-Item -ItemType Directory -Path $caseDir | Out-Null
         $folder=if ($case.name -eq 'moved-unicode') { 'moved folder ' + [char]0x00e1 + [char]0x00f1 } else { 'app' }
@@ -233,8 +300,8 @@ try {
             if ($case.planner) { $planner=Open-Planner $p $caseDir }
             $shot=Capture-Window $p (Join-Path $caseDir 'window.png')
             $net += Inspect-Process $p
-            if (-not $p.CloseMainWindow()) { throw 'Could not request clean window close' }
-            if (-not $p.WaitForExit(30000)) { throw 'Application did not close cleanly within 30 seconds' }
+            Close-AppCleanly $p
+            $p.WaitForExit()
             if ($p.ExitCode -ne 0) { throw "Application exited with code $($p.ExitCode)" }
         } catch {
             $caseFailure=$_.Exception.Message
@@ -265,7 +332,7 @@ try {
         $after=Snapshot-Tree $ActualAppRoots
         if (@(Compare-Object $ActualBefore $after).Count -ne 0) { throw 'Real runner SolidCraft profile state changed' }
         if ($case.name -eq 'normal') { $NormalApp=$appDir }
-        $script:CaseResults += @{ name=$case.name; arguments=if ($case.safe) { '--sample --safe-mode' } else { '--sample' }; status='PASS'; exit_code=$p.ExitCode; first_frame_presented=$true; portable_marker=$true; planner=$planner; screenshot=$shot; network_samples=$net; sandbox_profile_files=0; token_files=0; real_app_profile_unchanged=$true }
+        $script:CaseResults += @{ name=$case.name; arguments=if ($case.safe) { '--safe-mode' } else { '' }; status='PASS'; exit_code=$p.ExitCode; first_frame_presented=$true; portable_marker=$true; planner=$planner; screenshot=$shot; network_samples=$net; sandbox_profile_files=0; token_files=0; real_app_profile_unchanged=$true }
     }
     # No ACL changes: a plain file named data exercises an unwritable storage shape.
     $collision=Join-Path $EvidenceDir 'data-file-collision'
@@ -296,8 +363,9 @@ try {
 } catch {
     $Failure=$_.Exception.Message
 } finally {
-    $result=@{ schema=1; status=$Status; exe_sha256=$ExeHash; completed_utc=[DateTime]::UtcNow.ToString('o'); cases=$script:CaseResults; failure=$Failure; no_control_credentials_created_by_harness=$true; rt750_status='NOT_VALIDATED'; limits=@('Native GUI startup/panel evidence only; file-picker and study persistence flows are covered separately by headless tests, not claimed by this smoke.','Network checks are bounded samples, not continuous system-wide tracing.','Own app profile paths and sandbox profile checked; not a claim that Windows/drivers leave zero traces.','No signing or certification performed.') }
+    $result=@{ schema=2; status=$Status; visual_release_gate='PENDING_GPU_OR_HUMAN_REVIEW'; exe_sha256=$ExeHash; completed_utc=[DateTime]::UtcNow.ToString('o'); cases=$script:CaseResults; failure=$Failure; no_control_credentials_created_by_harness=$true; rt750_status='NOT_VALIDATED'; limits=@('Native SKM startup, six-area navigation, accessible load edit and committed inspect report only. Screenshots and distinct-color checks do not verify crane pixels. GPU evidence or explicit human screenshot review remains required before release. File-picker and persistence are covered separately, not claimed here.','Network checks are bounded samples, not continuous system-wide tracing.','Own app profile paths and sandbox profile checked; not a claim that Windows/drivers leave zero traces.','No signing or certification performed.') }
     Write-Json (Join-Path $EvidenceDir 'smoke-result.json') $result
 }
 if ($Status -ne 'PASS') { throw $Failure }
 Write-Output "PASS: Windows portable native smoke; EXE SHA256 $ExeHash"
+
