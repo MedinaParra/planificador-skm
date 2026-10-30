@@ -1,5 +1,7 @@
 import importlib.util
 import tempfile
+import json
+from unittest.mock import patch
 import unittest
 from pathlib import Path
 
@@ -27,6 +29,36 @@ class PrepareSourceTests(unittest.TestCase):
                 module.verify_files(root, manifest)
             self.assertNotEqual(first, module.tree_inventory(root))
 
+    def test_skm_rejects_patch_drift_before_apply(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "patches").mkdir()
+            (root / "patches/skm-workspace.patch").write_bytes(b"modified")
+            with patch.object(module, "run") as command:
+                with self.assertRaises(ValueError):
+                    module.apply_skm(root, root, {"skm_patch_sha256": "0" * 64})
+                command.assert_not_called()
+
+    def test_skm_applies_exact_delta_and_verifies_entire_tree(self):
+        with tempfile.TemporaryDirectory() as temp:
+            repo = Path(temp) / "recipe"
+            root = Path(temp) / "source"
+            (repo / "patches").mkdir(parents=True)
+            root.mkdir()
+            content = b"SKM reference only\n"
+            patch_path = repo / "patches/skm-workspace.patch"
+            patch_path.write_text("--- /dev/null\n+++ b/scene.txt\n@@ -0,0 +1 @@\n+SKM reference only\n")
+            (repo / "patches/skm-workspace.files.json").write_text(json.dumps({"scene.txt": {"sha256": module.sha(content)}}))
+            (root / "scene.txt").write_bytes(content)
+            expected, count = module.tree_inventory(root)
+            (root / "scene.txt").unlink()
+            lock = {"skm_patch_sha256": module.sha(patch_path.read_bytes()), "skm_tree_sha256": expected, "skm_tree_files": count}
+            self.assertEqual(module.apply_skm(root, repo, lock), (expected, count))
+            (root / "scene.txt").unlink()
+            lock["skm_tree_sha256"] = "0" * 64
+            with self.assertRaises(ValueError):
+                module.apply_skm(root, repo, lock)
+
     def test_inventory_ignores_only_git_metadata(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -41,3 +73,4 @@ class PrepareSourceTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
