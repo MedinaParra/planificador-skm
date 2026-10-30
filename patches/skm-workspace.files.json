@@ -1,0 +1,32 @@
+{
+  "apps/solidcraft/src/main.rs": {
+    "sha256": "0b1d724f5976f00b7455477e0c716804cc1c66f72e31e646068547fa1d5501f0"
+  },
+  "assets/locales/pending/skm-workspace.json": {
+    "sha256": "7f1ae83918060dd40d02870752a6e56d6eef57f279f486a3a512d3be94288460"
+  },
+  "attribution/pending/skm-workspace.md": {
+    "sha256": "c92398f741c175d8107dc3e09c299907d1963c82c0e7144faed1ae0e072f71c2"
+  },
+  "crates/engine/src/cmd/mod.rs": {
+    "sha256": "f83a49e4799a207b0a35745e88900feacfd2a3310e3ec93dae7cc1ea35fe80d8"
+  },
+  "crates/engine/src/cmd/skm_scene.rs": {
+    "sha256": "3e4b1ed63d1e32a8d93ba21b28905fc9ff67d25e9223353161d6172d7ade8481"
+  },
+  "crates/engine/tests/lift_plan.rs": {
+    "sha256": "a23fa7b6355a96bec94d3b42ac801a34d7f36be38e1f50e6ae6c1a51469e2789"
+  },
+  "crates/ui-egui/src/documents.rs": {
+    "sha256": "aede9ec34736fe6222de09d3be548daba78e46e0e2f5dbf44a3e3478d09cb1c0"
+  },
+  "crates/ui-egui/src/lib.rs": {
+    "sha256": "1bd22769382f99ded39f4728f01796f98ded4831d77a65eed2e6b36b49013008"
+  },
+  "crates/ui-egui/src/skm_workspace.rs": {
+    "sha256": "239d455fd83c387698af6e0decbeba13971218af0f63e68e6621ae576700891d"
+  },
+  "crates/ui-egui/tests/skm_preview.rs": {
+    "sha256": "050d322a894efaf9fad3673fc189fa0c5131c64c02c1bd92eaa7811da47b2dec"
+  }
+}
