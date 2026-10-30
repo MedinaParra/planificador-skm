@@ -55,8 +55,8 @@ def apply_skm(root: Path, repo: Path, lock: dict) -> tuple[str, int]:
     patch = repo / "patches/skm-workspace.patch"
     if sha(patch.read_bytes()) != lock["skm_patch_sha256"]:
         raise ValueError("SKM patch checksum mismatch")
-    run("git", "-C", str(root), "apply", "--check", str(patch.resolve()))
-    run("git", "-C", str(root), "apply", str(patch.resolve()))
+    run("git", "-c", "core.autocrlf=false", "-c", "core.eol=lf", "-C", str(root), "apply", "--check", str(patch.resolve()))
+    run("git", "-c", "core.autocrlf=false", "-c", "core.eol=lf", "-C", str(root), "apply", str(patch.resolve()))
     manifest = json.loads((repo / "patches/skm-workspace.files.json").read_text(encoding="utf-8"))
     verify_files(root, manifest)
     final, count = tree_inventory(root)
