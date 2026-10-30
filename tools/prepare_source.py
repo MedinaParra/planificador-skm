@@ -65,6 +65,18 @@ def apply_skm(root: Path, repo: Path, lock: dict) -> tuple[str, int]:
     return final, count
 
 
+def apply_test_guard(root: Path, repo: Path, lock: dict) -> tuple[str, int]:
+    patch = repo / "patches/skm-tests-windows.patch"
+    if sha(patch.read_bytes()) != lock["qa_test_patch_sha256"]:
+        raise ValueError("Test-only patch checksum mismatch")
+    run("git", "-c", "core.autocrlf=false", "-c", "core.eol=lf", "-C", str(root), "apply", "--check", str(patch.resolve()))
+    run("git", "-c", "core.autocrlf=false", "-c", "core.eol=lf", "-C", str(root), "apply", str(patch.resolve()))
+    final, count = tree_inventory(root)
+    if final != lock["qa_tree_sha256"] or count != lock["qa_tree_files"]:
+        raise ValueError("Full QA test source tree differs from reviewed snapshot")
+    return final, count
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", type=Path, default=Path("build-source"))
@@ -134,7 +146,9 @@ def main() -> None:
     if final != lock["portable_tree_sha256"] or count != lock["portable_tree_files"]:
         raise ValueError("Full portable source tree differs from the reviewed snapshot")
     final, count = apply_skm(out, repo, lock)
-    receipt = dict(lock, status="PASS", verified_delta_files=len(manifest),
+    production_tree = final
+    final, count = apply_test_guard(out, repo, lock)
+    receipt = dict(lock, status="PASS", production_tree_sha256=production_tree, verified_delta_files=len(manifest),
                    verified_portable_files=len(portable_manifest), reconstructed_tree_sha256=final,
                    reconstructed_tree_files=count, embedded_git_commit="unknown; cache trust remains disabled")
     (evidence / "source-receipt.json").write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
