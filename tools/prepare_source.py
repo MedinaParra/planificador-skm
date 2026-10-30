@@ -51,6 +51,20 @@ def tree_inventory(root: Path) -> tuple[str, int]:
     return sha("".join(rows).encode("utf-8")), len(rows)
 
 
+def apply_skm(root: Path, repo: Path, lock: dict) -> tuple[str, int]:
+    patch = repo / "patches/skm-workspace.patch"
+    if sha(patch.read_bytes()) != lock["skm_patch_sha256"]:
+        raise ValueError("SKM patch checksum mismatch")
+    run("git", "-C", str(root), "apply", "--check", str(patch.resolve()))
+    run("git", "-C", str(root), "apply", str(patch.resolve()))
+    manifest = json.loads((repo / "patches/skm-workspace.files.json").read_text(encoding="utf-8"))
+    verify_files(root, manifest)
+    final, count = tree_inventory(root)
+    if final != lock["skm_tree_sha256"] or count != lock["skm_tree_files"]:
+        raise ValueError("Full SKM source tree differs from reviewed candidate")
+    return final, count
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", type=Path, default=Path("build-source"))
@@ -119,6 +133,7 @@ def main() -> None:
     final, count = tree_inventory(out)
     if final != lock["portable_tree_sha256"] or count != lock["portable_tree_files"]:
         raise ValueError("Full portable source tree differs from the reviewed snapshot")
+    final, count = apply_skm(out, repo, lock)
     receipt = dict(lock, status="PASS", verified_delta_files=len(manifest),
                    verified_portable_files=len(portable_manifest), reconstructed_tree_sha256=final,
                    reconstructed_tree_files=count, embedded_git_commit="unknown; cache trust remains disabled")
@@ -128,3 +143,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
