@@ -1,0 +1,10 @@
+--- a/crates/ui-egui/src/cli_link.rs
++++ b/crates/ui-egui/src/cli_link.rs
+@@ -155,6 +155,7 @@
+         assert_eq!(plan(&Slot::Other, cli), Plan::Skip);
+     }
+ 
++    #[cfg(unix)]
+     #[test]
+     fn links_only_where_it_may() {
+         let d = std::env::temp_dir().join(format!("solidcraft-cli-link-{}", std::process::id()));
