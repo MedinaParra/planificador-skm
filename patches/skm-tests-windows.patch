@@ -8,3 +8,113 @@
      #[test]
      fn links_only_where_it_may() {
          let d = std::env::temp_dir().join(format!("solidcraft-cli-link-{}", std::process::id()));
+--- a/crates/ui-egui/tests/skm_preview.rs
++++ b/crates/ui-egui/tests/skm_preview.rs
+@@ -13,7 +13,7 @@
+ const WIDTH: u32 = 1600;
+ const HEIGHT: u32 = 1000;
+ 
+-fn frame(h: &mut Harness, rs: &RenderState, events: Vec<egui::Event>, save: Option<&Path>) {
++fn frame(h: &mut Harness, rs: &RenderState, events: Vec<egui::Event>, save: Option<&Path>) -> gpu::DrawStats {
+     let mut input = egui::RawInput {
+         screen_rect: Some(egui::Rect::from_min_size(egui::Pos2::ZERO, egui::vec2(WIDTH as f32, HEIGHT as f32))),
+         time: Some(h.ctx.cumulative_frame_nr() as f64 / 60.0),
+@@ -99,13 +99,35 @@
+     rs.device.poll(wgpu::PollType::Wait { submission_index: Some(submission), timeout: Some(Duration::from_secs(60)) }).expect("GPU completion");
+     rx.recv_timeout(Duration::from_secs(5)).expect("readback callback").expect("readback mapping");
+     let stats = *stats.lock().expect("draw statistics");
+-    assert!(stats.draw_calls > 0 && stats.triangles > 0, "viewport must draw actual geometry: {stats:?}");
++    eprintln!("SKM frame {}: {stats:?}", h.ctx.cumulative_frame_nr());
+     if let Some(path) = save {
++        let approved = stats.draw_calls > 0 && stats.triangles > 0;
++        let output = if approved {
++            path.to_path_buf()
++        } else {
++            path.with_file_name(format!("NO_QA-{}", path.file_name().expect("capture filename").to_string_lossy()))
++        };
+         let data = slice.get_mapped_range().expect("mapped pixels");
+         let rgba: Vec<u8> = data.chunks(padded as usize).take(HEIGHT as usize).flat_map(|r| r[..row as usize].iter().copied()).collect();
+-        image::RgbaImage::from_raw(WIDTH, HEIGHT, rgba).expect("complete image").save(path).expect("write evidence PNG");
+-        eprintln!("SKM full native UI frame: {} — {stats:?}", path.display());
+-    }
++        image::RgbaImage::from_raw(WIDTH, HEIGHT, rgba).expect("complete image").save(&output).expect("write evidence PNG");
++        std::fs::write(
++            output.with_extension("stats.json"),
++            serde_json::to_vec_pretty(&json!({
++                "status": if approved { "FRESH_GEOMETRY_RENDER" } else { "FAILED_NOT_APPROVED" },
++                "draw_calls":stats.draw_calls, "triangles":stats.triangles, "line_segments":stats.line_segments,
++                "supersampled":stats.supersampled, "camera_distance":h.app.cam.distance
++            }))
++            .expect("serialize frame statistics"),
++        )
++        .expect("save frame statistics");
++        assert!(approved, "EVERY evidence capture must draw fresh actual geometry: {stats:?}; diagnostic: {}", output.display());
++        eprintln!("SKM full native UI frame: {} — {stats:?}", output.display());
++    }
++    // Split targets legitimately blit a cached viewport on an unchanged frame.
++    // view::Renderer::prepare resets triangle counters on can_reuse; paint counts
++    // the one blit. Zero triangles on such an intermediate frame is not blankness.
++    assert!(stats.draw_calls > 0, "viewport callback must execute on every frame: {stats:?}");
++    stats
+ }
+ 
+ #[test]
+@@ -141,11 +163,16 @@
+     solidcraft_ui_egui::fonts::setup_bundled_fonts(&h.ctx);
+     solidcraft_ui_egui::theme::apply(&h.ctx);
+     h.app.set_wgpu_split(&rs, 24, 8, 1);
++    let mut warmup = Vec::new();
+     for _ in 0..8 {
+-        frame(&mut h, &rs, vec![], None);
+-    }
++        let stats = frame(&mut h, &rs, vec![], None);
++        warmup.push(json!({"draw_calls":stats.draw_calls,"triangles":stats.triangles,"line_segments":stats.line_segments}));
++    }
++    std::fs::write(dir.join("warmup-stats.json"), serde_json::to_vec_pretty(&warmup).expect("warmup stats")).expect("save warmup stats");
++    assert!(warmup.iter().any(|s| s["triangles"].as_u64().unwrap_or(0) > 0), "warmup never rendered geometry");
+     h.app.fit_view();
+     let before = h.app.session.doc.to_json();
++    let mut captures = Vec::new();
+     for (index, label) in ["obra", "grua", "carga", "maniobra", "verificaciones", "informe"].iter().enumerate() {
+         let at = scenario::handle_at(&format!("skm:area:{index}")).expect("SKM area button");
+         frame(&mut h, &rs, vec![egui::Event::PointerMoved(at)], None);
+@@ -165,14 +192,37 @@
+         assert!(h.widget("NO OPERATIVO / NOT_VALIDATED").is_some(), "permanent safety banner");
+         assert!(scenario::handle_at("appbar:file").is_none(), "CAD app bar must not appear in SKM shell");
+         assert_eq!(h.app.session.doc.to_json(), before, "changing areas must not mutate the scene");
+-        frame(&mut h, &rs, vec![], Some(&dir.join(format!("skm-{index}-{label}.png"))));
++        let inspection = h.app.run("skm.scene.inspect", json!({})).expect("inspect capture scene");
++        assert_eq!(inspection["managed_geometry_matches_parameters"], true, "capture must match managed crane geometry");
++        assert_eq!(inspection["operational_approval"], false);
++        assert_eq!(h.app.session.world_state().bodies.len(), 33, "all generated crane/rigging/load bodies must remain present");
++        let bounds = solidcraft_engine::view::bounds(&h.app.session);
++        assert!(!bounds.is_empty() && bounds.min.is_finite() && bounds.max.is_finite(), "finite visible scene bounds");
++        assert!(bounds.size().x > 0.0 && bounds.size().y > 0.0 && bounds.size().z > 0.0, "scene has real 3D extent");
++        // Renderer::frame_key hashes the camera view-projection matrix. A small
++        // real camera zoom invalidates its still-image cache without touching
++        // geometry or renderer internals. Every saved PNG must then tally triangles.
++        // Clear pending fit, animated navigation, orbit and spin through the same
++        // public hand-off used by external navigation devices, so logic cannot
++        // overwrite this camera update before the viewport callback.
++        h.app.begin_external_navigation();
++        let camera_before = h.app.cam.distance;
++        let camera_expected = camera_before * 1.001;
++        h.app.cam.distance = camera_expected;
++        let stats = frame(&mut h, &rs, vec![], Some(&dir.join(format!("skm-{index}-{label}.png"))));
++        assert_eq!(h.app.cam.distance, camera_expected, "native logic must preserve the cache-invalidating camera update");
++        assert_eq!(h.app.session.doc.to_json(), before, "camera/capture must not mutate scene");
++        captures.push(json!({"area":label,"camera_distance_before":camera_before,"camera_distance_after":h.app.cam.distance,
++            "camera_zoom_factor":1.001,"bounds":bounds,"bodies":33,"draw_calls":stats.draw_calls,"triangles":stats.triangles}));
+     }
+     std::fs::write(
+         dir.join("capture.json"),
+         serde_json::to_vec_pretty(&json!({
+             "capture": "full application egui + production GPU viewport callbacks; single render target, no compositing",
+             "adapter": format!("{:?}", rs.adapter.get_info()), "width": WIDTH, "height": HEIGHT,
+-            "operational_validation": false, "scene": "generic geometric reference, not OEM RT750"
++            "operational_validation": false, "scene": "generic geometric reference, not OEM RT750",
++            "fresh_capture_gate": "every PNG has triangles > 0 after native camera zoom invalidates frame_key cache",
++            "captures": captures, "warmup": warmup
+         }))
+         .expect("capture metadata"),
+     )
