@@ -47,7 +47,7 @@ class PrepareSourceTests(unittest.TestCase):
             root.mkdir()
             content = b"SKM reference only\n"
             patch_path = repo / "patches/skm-workspace.patch"
-            patch_path.write_text("--- /dev/null\n+++ b/scene.txt\n@@ -0,0 +1 @@\n+SKM reference only\n")
+            patch_path.write_bytes(b"--- /dev/null\n+++ b/scene.txt\n@@ -0,0 +1 @@\n+SKM reference only\n")
             (repo / "patches/skm-workspace.files.json").write_text(json.dumps({"scene.txt": {"sha256": module.sha(content)}}))
             (root / "scene.txt").write_bytes(content)
             expected, count = module.tree_inventory(root)
