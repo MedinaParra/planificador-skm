@@ -158,7 +158,7 @@ try {
         if ($got -ne (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()) { throw "ZIP member hash mismatch: $($file.Name)" }
     }
 } finally { $archive.Dispose() }
-$receipt=@{ schema=1; status='PASS'; filename=[IO.Path]::GetFileName($zip); zip_sha256=(Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant(); size_bytes=(Get-Item -LiteralPath $zip).Length; exe_sha256=$exeSha; file_count=$expected.Count; zip_inventory_and_hashes='PASS'; base_commit=$build.base_commit; source_commit=$build.source_commit; delta_sha256=$build.delta_sha256; portable_patch_sha256=$build.portable_patch_sha256; rt750_status='NOT_VALIDATED'; created_utc=[DateTime]::UtcNow.ToString('o'); signing='NOT_SIGNED'; installation='NONE'; cli_or_mcp_included=$false }
+$receipt=@{ schema=1; status='PASS'; filename=[IO.Path]::GetFileName($zip); zip_sha256=(Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant(); size_bytes=(Get-Item -LiteralPath $zip).Length; exe_sha256=$exeSha; file_count=$expected.Count; zip_inventory_and_hashes='PASS'; base_commit=$build.base_commit; source_commit=$build.source_commit; qa_commit=$build.qa_commit; producer_source_commit=$build.producer_source_commit; production_rebuilt=$build.production_rebuilt; delta_sha256=$build.delta_sha256; portable_patch_sha256=$build.portable_patch_sha256; rt750_status='NOT_VALIDATED'; created_utc=[DateTime]::UtcNow.ToString('o'); signing='NOT_SIGNED'; installation='NONE'; cli_or_mcp_included=$false }
 $receipt | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath (Join-Path $OutputDir 'package-result.json') -Encoding UTF8
 Write-Output "PASS: $zip ($($receipt.size_bytes) bytes), SHA256 $($receipt.zip_sha256)"
 
